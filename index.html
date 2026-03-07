@@ -2,24 +2,24 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Polymarket Sniper | 67404...44375</title>
+    <title>Polymarket Sniper | 15M BTC</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --bg: #05070a; --panel: #0b0e14; --border: #1d2127; --accent: #00ffad; }
+        :root { --bg: #05070a; --panel: #0b0e14; --border: #1d2127; }
         body { background: var(--bg); color: #e1e4e8; font-family: 'JetBrains Mono', monospace; font-size: 11px; margin: 0; overflow: hidden; }
         .grid-layout { display: grid; grid-template-columns: 280px 1fr 300px; height: 100vh; gap: 6px; padding: 6px; }
         .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
         .header-sub { color: #5d6773; font-size: 9px; text-transform: uppercase; font-weight: bold; }
         #chart-container { width: 100%; height: 100%; }
-        .trade-row { font-size: 10px; border-bottom: 1px solid #161b22; padding: 1px 4px; }
+        .trade-row { font-size: 10px; border-bottom: 1px solid #161b22; padding: 2px 6px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body class="grid-layout">
 
     <aside class="flex flex-col gap-2 overflow-hidden">
         <div class="panel p-3 h-1/2">
-            <h3 class="header-sub mb-2 text-blue-400">📊 Order Book (BTC)</h3>
+            <h3 class="header-sub mb-2 text-blue-400">📊 Order Book</h3>
             <div id="asks" class="text-[#ff3b69]"></div>
             <div id="spread" class="text-center py-1 border-y border-gray-800 my-1 text-gray-500">---</div>
             <div id="bids" class="text-[#00ffad]"></div>
@@ -29,46 +29,45 @@
                 <span class="header-sub text-white">Live Sales</span>
                 <span id="ws-status" class="text-[8px] text-green-500 bg-green-500/10 px-1 rounded">WS LIVE</span>
             </div>
-            <div id="sales-feed" class="flex-1 overflow-y-auto font-mono"></div>
+            <div id="sales-feed" class="flex-1 overflow-y-auto"></div>
         </div>
     </aside>
 
     <main class="panel relative">
-        <div class="absolute top-3 left-3 z-50 bg-black/80 p-2 border border-gray-800 rounded">
+        <div class="absolute top-3 left-3 z-50 bg-black/80 p-3 border border-gray-800 rounded">
             <p class="header-sub">BTC/USDT Spot</p>
-            <p id="main-price" class="text-xl font-bold text-white">0.00</p>
-            <p id="strike-diff" class="text-[10px] text-gray-500">-- vs strike</p>
+            <p id="main-price" class="text-2xl font-bold text-white">0.00</p>
+            <p id="strike-diff" class="text-xs font-bold">-- vs strike</p>
         </div>
         <div id="chart-container"></div>
     </main>
 
     <aside class="flex flex-col gap-2">
-        <div class="panel p-4 border-blue-500/30">
+        <div class="panel p-4 border-blue-500/40 bg-blue-900/5">
             <h3 class="header-sub mb-4 text-center">Polymarket Midpoint</h3>
-            <div class="bg-black/40 p-4 border border-gray-800 rounded text-center">
-                <p id="poly-val" class="text-4xl font-black">--¢</p>
-                <div class="w-full bg-gray-900 h-1.5 mt-3 rounded-full overflow-hidden">
-                    <div id="poly-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+            <div class="bg-black/60 p-5 border border-gray-800 rounded text-center">
+                <p id="poly-val" class="text-5xl font-black text-white">--¢</p>
+                <div class="w-full bg-gray-900 h-2 mt-4 rounded-full overflow-hidden">
+                    <div id="poly-bar" class="bg-blue-500 h-full transition-all duration-700" style="width: 0%"></div>
                 </div>
             </div>
-            <p id="token-status" class="text-[8px] text-center mt-2 text-green-400 uppercase tracking-widest">Connecting...</p>
+            <p id="token-status" class="text-[9px] text-center mt-3 text-yellow-500 font-bold uppercase tracking-widest">Awaiting Data...</p>
         </div>
         <div class="panel flex-1 flex flex-col items-center justify-center bg-black/20">
-            <span class="header-sub">Time to Close</span>
-            <div id="timer" class="text-6xl font-black">08:00</div>
-            <p class="text-[9px] text-gray-500 mt-2">AUTO-SYNC ACTIVE</p>
+            <span class="header-sub">Closing In</span>
+            <div id="timer" class="text-7xl font-black text-white">08:00</div>
+            <div id="signal-box" class="mt-4 px-3 py-1 rounded border border-gray-800 text-[10px] text-gray-500 font-bold">STABLE</div>
         </div>
     </aside>
 
     <script>
-        // --- ДАННЫЕ (ОБНОВЛЕНО ПОД ТВОЙ ТОКЕН) ---
+        // ДАННЫЕ ИЗ ТВОЕГО ЗАПРОСА
         const TOKEN_ID = "67404634114493846562791118559100324093748944985408299978272941795392737044375";
-        const STRIKE = 67500; // Подправь под актуальный страйк рынка
-        const PROXY = "https://corsproxy.io/?"; 
+        const STRIKE = 67600; // ЦЕНА ИЗ ТВОЕГО КОНТРАКТА
+        const PROXY = "https://api.allorigins.win/raw?url=";
 
         let chart, candleSeries, lastPrice = 0;
 
-        // 1. График
         function initChart() {
             const container = document.getElementById('chart-container');
             chart = LightweightCharts.createChart(container, {
@@ -86,12 +85,10 @@
                         time: x[0]/1000, open: +x[1], high: +x[2], low: +x[3], close: +x[4]
                     })));
                     chart.timeScale().fitContent();
-                    // Фикс отрисовки
-                    setTimeout(() => chart.resize(container.offsetWidth, container.offsetHeight), 300);
+                    setTimeout(() => chart.resize(container.offsetWidth, container.offsetHeight), 500);
                 });
         }
 
-        // 2. WebSocket Binance
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade/btcusdt@depth5@100ms');
         ws.onmessage = (e) => {
             const d = JSON.parse(e.data);
@@ -99,16 +96,15 @@
                 lastPrice = +d.p;
                 document.getElementById('main-price').innerText = lastPrice.toLocaleString();
                 
-                // Strike diff calculation
                 const diff = lastPrice - STRIKE;
-                document.getElementById('strike-diff').innerText = `${diff > 0 ? '+' : ''}${diff.toFixed(2)} vs strike`;
-                document.getElementById('strike-diff').className = `text-[10px] ${diff > 0 ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
+                const diffEl = document.getElementById('strike-diff');
+                diffEl.innerText = `${diff > 0 ? '+' : ''}${diff.toFixed(2)} vs strike`;
+                diffEl.className = `text-xs font-bold ${diff > 0 ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
 
-                // Sales feed
-                const row = `<div class="trade-row ${!d.m ? 'text-[#00ffad]' : 'text-[#ff3b69]'}">${new Date().toLocaleTimeString()} | ${(+d.p).toFixed(1)}</div>`;
+                const row = `<div class="trade-row ${!d.m ? 'text-[#00ffad]' : 'text-[#ff3b69]'}"><span>${new Date().toLocaleTimeString()}</span><span>${(+d.p).toFixed(1)}</span></div>`;
                 const feed = document.getElementById('sales-feed');
                 feed.insertAdjacentHTML('afterbegin', row);
-                if(feed.children.length > 20) feed.lastChild.remove();
+                if(feed.children.length > 25) feed.lastChild.remove();
             } else if (d.asks) {
                 document.getElementById('asks').innerHTML = d.asks.map(x => `<div class="flex justify-between"><span>${(+x[0]).toFixed(1)}</span><span>${(+x[1]).toFixed(3)}</span></div>`).reverse().join('');
                 document.getElementById('bids').innerHTML = d.bids.map(x => `<div class="flex justify-between"><span>${(+x[0]).toFixed(1)}</span><span>${(+x[1]).toFixed(3)}</span></div>`).join('');
@@ -116,34 +112,36 @@
             }
         };
 
-        // 3. Polymarket (С исправленным прокси)
-       async function fetchPoly() {
+        async function fetchPoly() {
             try {
-                // Прямой запрос через AllOrigins
                 const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
-                const res = await fetch(PROXY + target);
-                
-                if (!res.ok) throw new Error('Proxy Blocked');
-                
+                const res = await fetch(PROXY + encodeURIComponent(target));
                 const data = await res.json();
                 
                 if (data && data.midpoint) {
                     const m = parseFloat(data.midpoint);
                     document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
                     document.getElementById('poly-bar').style.width = (m * 100) + '%';
-                    document.getElementById('token-status').innerText = 'SYNC OK';
-                    document.getElementById('token-status').className = 'text-[8px] text-center mt-2 text-green-400';
-                } else {
-                    document.getElementById('token-status').innerText = 'DATA EMPTY (CHECK ID)';
-                    document.getElementById('token-status').className = 'text-[8px] text-center mt-2 text-yellow-500';
+                    
+                    const status = document.getElementById('token-status');
+                    status.innerText = 'SYNC ACTIVE';
+                    status.className = 'text-[9px] text-center mt-3 text-green-500 font-bold';
+
+                    // Простейшая логика сигнала
+                    const sig = document.getElementById('signal-box');
+                    if (lastPrice > STRIKE && m < 0.7) {
+                        sig.innerText = 'BULLISH EDGE';
+                        sig.className = 'mt-4 px-3 py-1 rounded border border-green-500 bg-green-500/10 text-[10px] text-green-500 font-bold';
+                    } else {
+                        sig.innerText = 'NEUTRAL';
+                        sig.className = 'mt-4 px-3 py-1 rounded border border-gray-800 text-[10px] text-gray-500 font-bold';
+                    }
                 }
             } catch (e) {
-                document.getElementById('token-status').innerText = 'PROXY 403 / FORBIDDEN';
-                document.getElementById('token-status').className = 'text-[8px] text-center mt-2 text-red-500';
+                document.getElementById('token-status').innerText = 'RECONNECTING PROXY...';
             }
         }
 
-        // Таймер
         let s = 480;
         setInterval(() => {
             s--; if(s<0) s=480;
@@ -152,7 +150,7 @@
         }, 1000);
 
         initChart();
-        setInterval(fetchPoly, 4000); // Опрос каждые 4 сек
+        setInterval(fetchPoly, 5000);
         fetchPoly();
 
         window.addEventListener('resize', () => {
