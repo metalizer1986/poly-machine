@@ -2,101 +2,176 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Polymarket Sniper Final</title>
+    <title>Polymarket Sniper | Ultra Stable</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
-        :root { --bg: #05070a; --panel: #0b0e14; }
+        :root { --bg: #05070a; --panel: #0b0e14; --border: #1d2127; --accent: #00ffad; }
         body { background: var(--bg); color: #e1e4e8; font-family: 'JetBrains Mono', monospace; font-size: 11px; margin: 0; overflow: hidden; }
         .grid-layout { display: grid; grid-template-columns: 280px 1fr 300px; grid-template-rows: 1fr 140px; height: 100vh; gap: 6px; padding: 6px; }
-        .panel { background: var(--panel); border: 1px solid #1d2127; border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
+        .header-sub { color: #5d6773; font-size: 9px; text-transform: uppercase; font-weight: bold; }
+        .trade-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 2px 6px; border-bottom: 1px solid #161b22; font-size: 10px; }
+        #sales-feed::-webkit-scrollbar { width: 2px; }
+        #sales-feed::-webkit-scrollbar-thumb { background: #30363d; }
     </style>
 </head>
 <body class="grid-layout">
-    <aside class="flex flex-col gap-2">
-        <div class="panel p-3 h-1/3 text-[10px]">
-            <h3 class="text-blue-400">📊 Order Book</h3>
+
+    <aside class="flex flex-col gap-2 overflow-hidden">
+        <div class="panel p-3 h-1/3">
+            <h3 class="header-sub mb-2 text-blue-400">📊 Order Book</h3>
             <div id="asks" class="text-[#ff3b69]"></div>
-            <div id="spread" class="text-gray-500 py-1 border-y border-gray-800 my-1">Spread: --</div>
+            <div id="spread" class="text-center py-1 border-y border-gray-800 my-1 text-gray-500">---</div>
             <div id="bids" class="text-[#00ffad]"></div>
         </div>
         <div class="panel flex-1">
-            <div class="p-2 border-b border-gray-800 flex justify-between">
-                <span>Live Sales</span>
-                <span id="ws-status" class="text-green-500">WS LIVE</span>
+            <div class="p-2 border-b border-gray-800 flex justify-between items-center">
+                <span class="header-sub text-white">Live Sales</span>
+                <span id="ws-status" class="text-[8px] text-green-500 bg-green-500/10 px-1 rounded">WS LIVE</span>
             </div>
             <div id="sales-feed" class="flex-1 overflow-y-auto"></div>
         </div>
     </aside>
 
     <main class="panel relative">
-        <div class="absolute top-3 left-3 z-10 bg-black/80 p-2 border border-gray-800 rounded">
-            <p class="text-[9px] text-gray-500">BTC/USDT Spot</p>
-            <p id="main-price" class="text-lg font-bold">0.00</p>
+        <div class="absolute top-3 left-3 z-10 bg-black/80 p-2 border border-gray-800 rounded z-[100]">
+            <p class="header-sub">BTC/USDT Spot</p>
+            <p id="main-price" class="text-xl font-bold">0.00</p>
+            <p id="strike-diff" class="text-[10px] text-gray-500">-- vs strike</p>
         </div>
         <div id="chart-container" style="width: 100%; height: 100%;"></div>
     </main>
 
     <aside class="flex flex-col gap-2">
-        <div class="panel p-4">
-            <h3 class="text-[9px] text-gray-500 uppercase">Polymarket Midpoint</h3>
-            <p id="poly-val" class="text-4xl font-black">--¢</p>
-            <div id="edge-val" class="text-gray-500 font-bold mt-4">WAITING...</div>
+        <div class="panel p-4 border-blue-500/30">
+            <h3 class="header-sub mb-4 text-center">Polymarket Midpoint</h3>
+            <div class="bg-black/40 p-4 border border-gray-800 rounded text-center">
+                <p id="poly-val" class="text-4xl font-black text-white">--¢</p>
+                <div class="w-full bg-gray-900 h-1.5 mt-3 rounded-full overflow-hidden">
+                    <div id="poly-bar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-between items-center border-t border-gray-800 pt-4">
+                <span class="header-sub">Edge Status</span>
+                <span id="edge-val" class="font-bold text-gray-500 uppercase">Syncing...</span>
+            </div>
         </div>
-        <div class="panel flex-1 flex flex-col items-center justify-center">
-            <div id="timer" class="text-5xl font-black">08:00</div>
+        <div class="panel flex-1 flex flex-col items-center justify-center bg-black/20">
+            <span class="header-sub">Entry Window</span>
+            <div id="timer" class="text-6xl font-black">08:00</div>
         </div>
     </aside>
 
+    <footer class="col-span-3 panel grid grid-cols-4 gap-4 p-4">
+        <div><p class="header-sub text-[#00ffad]">Sentiment</p><p class="font-bold">BULLISH ▲</p></div>
+        <div><p class="header-sub">Strategy</p><p class="font-bold">BTC-15M-SNIPER</p></div>
+        <div><p class="header-sub">Token Sync</p><p id="sync-status" class="text-[10px] text-yellow-500">WAITING</p></div>
+        <div><p class="header-sub">Active Strike</p><p class="text-sm font-bold text-blue-400">~68,000</p></div>
+    </footer>
+
     <script>
-        // Твой свежий токен
-        const POLY_TOKEN_ID = "73386326250505661166199820758407085740901435999806488177463982633430474049621";
-        const PROXY = "https://groqproxy.popkosasha86.workers.dev/?url=";
+        // ДАННЫЕ (ТВОЙ НОВЫЙ ТОКЕН)
+        const TOKEN_ID = "73386326250505661166199820758407085740901435999806488177463982633430474049621";
+        const STRIKE = 68000;
+        
+        // Массив прокси для надежности
+        const PROXIES = [
+            `https://groqproxy.popkosasha86.workers.dev/?url=`,
+            `https://api.allorigins.win/raw?url=`
+        ];
+        let currentProxyIdx = 0;
 
-        // 1. Инициализация графика с задержкой
-        setTimeout(() => {
-            const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+        let lastPrice = 0;
+        let chart, candleSeries;
+
+        function initChart() {
+            const container = document.getElementById('chart-container');
+            chart = LightweightCharts.createChart(container, {
                 layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
-                grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } }
+                grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
+                timeScale: { borderColor: '#1d2127', timeVisible: true },
+                autoSize: true
             });
-            const candleSeries = chart.addCandlestickSeries();
-            fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=50")
-                .then(r => r.json()).then(d => candleSeries.setData(d.map(x => ({time: x[0]/1000, open: +x[1], high: +x[2], low: +x[3], close: +x[4]}))));
-        }, 500);
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false, wickUpColor: '#00ffad', wickDownColor: '#ff3b69'
+            });
+            
+            fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100")
+                .then(r => r.json()).then(d => {
+                    candleSeries.setData(d.map(x => ({
+                        time: x[0]/1000, open: +x[1], high: +x[2], low: +x[3], close: +x[4]
+                    })));
+                });
+        }
 
-        // 2. Binance WS
+        // BINANCE WS
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade/btcusdt@depth5@100ms');
         ws.onmessage = (e) => {
             const d = JSON.parse(e.data);
             if (d.e === 'trade') {
-                document.getElementById('main-price').innerText = (+d.p).toLocaleString();
+                lastPrice = +d.p;
+                document.getElementById('main-price').innerText = lastPrice.toLocaleString();
+                const diff = lastPrice - STRIKE;
+                document.getElementById('strike-diff').innerText = `${diff > 0 ? '+' : ''}${diff.toFixed(2)} vs strike`;
+                document.getElementById('strike-diff').className = `text-[10px] ${diff > 0 ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
+                
+                const row = document.createElement('div');
+                row.className = `trade-row ${!d.m ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
+                row.innerHTML = `<span>${new Date().toLocaleTimeString()}</span><span>${(+d.p).toFixed(1)}</span><span class="text-right">${(+d.q).toFixed(3)}</span>`;
                 const feed = document.getElementById('sales-feed');
-                feed.insertAdjacentHTML('afterbegin', `<div class="text-[10px] grid grid-cols-2"><span>${(+d.p).toFixed(1)}</span><span>${(+d.q).toFixed(3)}</span></div>`);
-                if(feed.children.length > 20) feed.lastChild.remove();
+                feed.prepend(row);
+                if(feed.children.length > 25) feed.lastChild.remove();
             } else if (d.asks) {
-                document.getElementById('asks').innerHTML = d.asks.map(x => `<div>${(+x[0]).toFixed(1)}</div>`).join('');
-                document.getElementById('bids').innerHTML = d.bids.map(x => `<div>${(+x[0]).toFixed(1)}</div>`).join('');
+                document.getElementById('asks').innerHTML = d.asks.map(x => `<div class="flex justify-between"><span>${(+x[0]).toFixed(1)}</span><span>${(+x[1]).toFixed(3)}</span></div>`).reverse().join('');
+                document.getElementById('bids').innerHTML = d.bids.map(x => `<div class="flex justify-between"><span>${(+x[0]).toFixed(1)}</span><span>${(+x[1]).toFixed(3)}</span></div>`).join('');
+                document.getElementById('spread').innerText = `Spread: ${(d.asks[0][0]-d.bids[0][0]).toFixed(2)}`;
             }
         };
 
-        // 3. Polymarket Data
+        // POLYMARKET FETCH С РОТАЦИЕЙ ПРОКСИ
         async function fetchPoly() {
-            try {
-                const target = `https://clob.polymarket.com/midpoint?token_id=${POLY_TOKEN_ID}`;
-                const res = await fetch(PROXY + encodeURIComponent(target));
-                const data = await res.json();
-                if (data.midpoint) {
-                    document.getElementById('poly-val').innerText = (data.midpoint * 100).toFixed(1) + '¢';
-                    document.getElementById('edge-val').innerText = 'DATA OK';
-                    document.getElementById('edge-val').className = 'text-green-500 font-bold mt-4';
+            const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
+            
+            for (let i = 0; i < PROXIES.length; i++) {
+                try {
+                    const res = await fetch(PROXIES[currentProxyIdx] + encodeURIComponent(target));
+                    if (!res.ok) throw new Error();
+                    const data = await res.json();
+                    
+                    if (data.midpoint) {
+                        const m = +data.midpoint;
+                        document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
+                        document.getElementById('poly-bar').style.width = (m * 100) + '%';
+                        document.getElementById('sync-status').innerText = 'STABLE (OK)';
+                        document.getElementById('sync-status').className = 'text-[10px] text-green-500';
+                        document.getElementById('edge-val').innerText = lastPrice > STRIKE ? 'POTENTIAL EDGE' : 'STABLE';
+                        return; // Успешно выходим
+                    }
+                } catch (e) {
+                    console.log(`Прокси ${currentProxyIdx} не сработал, пробуем следующий...`);
+                    currentProxyIdx = (currentProxyIdx + 1) % PROXIES.length;
                 }
-            } catch (e) { 
-                document.getElementById('edge-val').innerText = 'API ERR';
-                console.error(e); 
             }
+            document.getElementById('sync-status').innerText = 'SYNC ERROR';
+            document.getElementById('sync-status').className = 'text-[10px] text-red-500';
         }
+
+        initChart();
         setInterval(fetchPoly, 5000);
         fetchPoly();
+
+        // TIMER
+        let s = 480;
+        setInterval(() => {
+            s--; if(s<0) s=480;
+            const min = Math.floor(s/60); const sec = s%60;
+            document.getElementById('timer').innerText = `${min}:${sec<10?'0':''}${sec}`;
+        }, 1000);
+
+        window.addEventListener('resize', () => {
+            if(chart) chart.resize(document.getElementById('chart-container').offsetWidth, document.getElementById('chart-container').offsetHeight);
+        });
     </script>
 </body>
 </html>
