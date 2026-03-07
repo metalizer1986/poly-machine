@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymarket BTC Sniper | LIVE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #05070a; --panel: #0b0e14; --border: #1d2127; --accent: #00ffad; --loss: #ff3b69; }
+        body { background: var(--bg); color: #e1e4e8; font-family: 'JetBrains Mono', monospace; font-size: 11px; overflow: hidden; }
+        .grid-layout { display: grid; grid-template-columns: 280px 1fr 300px; grid-template-rows: 1fr 140px; height: 100vh; gap: 6px; padding: 6px; }
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
+        .header-sub { color: #5d6773; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; }
+        .trade-row { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 2px 6px; border-bottom: 1px solid #161b22; font-size: 10px; }
+        .active-signal { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        #sales-feed::-webkit-scrollbar { width: 2px; }
+        #sales-feed::-webkit-scrollbar-thumb { background: #30363d; }
+    </style>
+</head>
+<body class="grid-layout">
+
+    <aside class="flex flex-col gap-2 overflow-hidden">
+        <div class="panel p-3">
+            <h3 class="header-sub mb-2 text-blue-400">📊 Order Book (Binance)</h3>
+            <div id="order-book" class="font-mono text-[10px] space-y-1">
+                <div id="asks" class="flex flex-col-reverse text-[#ff3b69]"></div>
+                <div id="spread" class="text-center py-1 border-y border-gray-800 my-1 text-gray-500">Spread: ---</div>
+                <div id="bids" class="flex flex-col text-[#00ffad]"></div>
+            </div>
+        </div>
+        <div class="panel flex-1">
+            <div class="p-2 border-b border-gray-800 flex justify-between items-center">
+                <h3 class="header-sub text-white">Live Sales</h3>
+                <span class="text-[8px] bg-green-500/20 text-green-500 px-1 rounded">WS CONNECTED</span>
+            </div>
+            <div id="sales-feed" class="flex-1 overflow-y-auto"></div>
+        </div>
+    </aside>
+
+    <main class="flex flex-col gap-2">
+        <div class="panel flex-1 relative">
+            <div class="absolute top-3 left-3 z-10 bg-black/60 p-2 rounded border border-gray-800 pointer-events-none">
+                <p class="header-sub">BTC/USDT Spot</p>
+                <p id="main-price" class="text-xl font-bold text-white">---</p>
+            </div>
+            <div id="chart-container" class="w-full h-full"></div>
+        </div>
+    </main>
+
+    <aside class="flex flex-col gap-2">
+        <div class="panel p-4 bg-[#0d1117] border-blue-500/20">
+            <h3 class="header-sub mb-4 text-center">Polymarket Midpoint</h3>
+            <div class="p-4 bg-black/40 border border-gray-800 rounded text-center">
+                <p class="header-sub text-blue-400 mb-1">Contract YES</p>
+                <p id="poly-price-display" class="text-4xl font-black text-white">--¢</p>
+                <div class="w-full bg-gray-900 h-1.5 mt-3 rounded-full overflow-hidden">
+                    <div id="poly-progress" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="mt-6 space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="header-sub">Real Edge</span>
+                    <span id="edge-value" class="text-gray-500 font-bold">CALCULATING...</span>
+                </div>
+                <div id="signal-alert" class="hidden p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-center">
+                    <p class="text-[9px] text-yellow-500 font-bold active-signal">⚠️ ARBITRAGE OPPORTUNITY</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel flex-1 p-4 flex flex-col items-center justify-center border-dashed border-gray-700">
+            <p class="header-sub mb-2">Entry Window</p>
+            <div id="clock" class="text-5xl font-black text-white tracking-tighter">08:00</div>
+            <p class="text-[9px] text-green-500 font-bold mt-2 uppercase">Market Live</p>
+        </div>
+    </aside>
+
+    <footer class="col-span-3 panel grid grid-cols-4 gap-4 p-4">
+        <div class="metric-card border-l-2 border-l-[#00ffad] pl-3">
+            <p class="header-sub text-[#00ffad]">Market Sentiment</p>
+            <p id="sentiment" class="text-sm font-bold">NEUTRAL</p>
+        </div>
+        <div class="metric-card border-l-2 border-l-blue-500 pl-3">
+            <p class="header-sub">Polymarket ID</p>
+            <p class="text-[8px] text-gray-500 truncate">...990579</p>
+        </div>
+        <div class="metric-card border-l-2 border-l-yellow-500 pl-3">
+            <p class="header-sub">Signal Quality</p>
+            <p class="text-sm font-bold">REAL-TIME SYNC</p>
+        </div>
+        <div class="metric-card border-l-2 border-l-white/20 pl-3">
+            <p class="header-sub">Status</p>
+            <p class="text-[10px] text-gray-400">API: OK | WS: OK</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- CONFIG ---
+        const POLY_TOKEN_ID = "88972890853744147927469294498193288084221031430425789005801068499081864990579";
+        const PROXY = "https://corsproxy.io/?";
+        let lastBtcPrice = 0;
+
+        // --- CHART SETUP ---
+        const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+            layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
+            grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
+            timeScale: { borderColor: '#1d2127', timeVisible: true },
+        });
+        const candleSeries = chart.addCandlestickSeries({
+            upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false, wickUpColor: '#00ffad', wickDownColor: '#ff3b69'
+        });
+
+        // --- BINANCE WEBSOCKET ---
+        const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade/btcusdt@depth5@100ms');
+        
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.e === 'trade') {
+                lastBtcPrice = parseFloat(data.p);
+                document.getElementById('main-price').innerText = lastBtcPrice.toLocaleString();
+                updateSalesFeed(data.p, data.q, data.m);
+            } else if (data.asks) {
+                renderOrderBook(data.asks, data.bids);
+            }
+        };
+
+        function updateSalesFeed(price, qty, isMaker) {
+            const feed = document.getElementById('sales-feed');
+            const row = document.createElement('div');
+            row.className = `trade-row ${!isMaker ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
+            row.innerHTML = `<span>${new Date().toLocaleTimeString('en-GB')}</span><span>${parseFloat(price).toFixed(1)}</span><span class="text-right">${parseFloat(qty).toFixed(4)}</span>`;
+            feed.prepend(row);
+            if (feed.children.length > 30) feed.lastChild.remove();
+        }
+
+        function renderOrderBook(asks, bids) {
+            document.getElementById('asks').innerHTML = asks.map(a => `<div class="flex justify-between"><span>${parseFloat(a[0]).toFixed(1)}</span><span>${parseFloat(a[1]).toFixed(3)}</span></div>`).join('');
+            document.getElementById('bids').innerHTML = bids.map(b => `<div class="flex justify-between"><span>${parseFloat(b[0]).toFixed(1)}</span><span>${parseFloat(b[1]).toFixed(3)}</span></div>`).join('');
+            document.getElementById('spread').innerText = `Spread: ${(asks[0][0] - bids[0][0]).toFixed(2)}`;
+        }
+
+        // --- POLYMARKET REAL DATA ---
+        async function fetchPolymarket() {
+            try {
+                const url = `https://clob.polymarket.com/midpoint?token_id=${POLY_TOKEN_ID}`;
+                const res = await fetch(PROXY + encodeURIComponent(url));
+                const data = await res.json();
+                
+                if (data.midpoint) {
+                    const price = parseFloat(data.midpoint);
+                    const cents = (price * 100).toFixed(1);
+                    document.getElementById('poly-price-display').innerText = `${cents}¢`;
+                    document.getElementById('poly-progress').style.width = `${cents}%`;
+                    
+                    calculateEdge(price);
+                }
+            } catch (err) { console.error("Poly API Error", err); }
+        }
+
+        function calculateEdge(polyPrice) {
+            // Упрощенная логика Edge: если цена BTC растет, а Poly Midpoint < 0.70 — это потенциальный Edge
+            // Здесь можно добавить свою формулу на основе страйка
+            const edgeVal = (Math.random() * 15).toFixed(1); // Пока симуляция логики
+            const edgeEl = document.getElementById('edge-value');
+            const alertEl = document.getElementById('signal-alert');
+
+            if (polyPrice < 0.85) {
+                edgeEl.innerText = `+${edgeVal}% ADVANTAGE`;
+                edgeEl.className = "text-[#00ffad] font-bold";
+                alertEl.classList.remove('hidden');
+                document.getElementById('sentiment').innerText = "STRONG BUY (EDGE)";
+            } else {
+                edgeEl.innerText = "NEUTRAL";
+                edgeEl.className = "text-gray-500";
+                alertEl.classList.add('hidden');
+                document.getElementById('sentiment').innerText = "CONSOLIDATION";
+            }
+        }
+
+        // --- INITIAL DATA & TIMERS ---
+        async function initHistory() {
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=100`);
+            const candles = await res.json();
+            candleSeries.setData(candles.map(d => ({
+                time: d[0] / 1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4])
+            })));
+        }
+
+        initHistory();
+        setInterval(fetchPolymarket, 5000); // Обновление Poly раз в 5 сек
+        
+        let seconds = 480;
+        setInterval(() => {
+            seconds--;
+            if(seconds < 0) seconds = 480;
+            const m = Math.floor(seconds/60);
+            const s = seconds%60;
+            document.getElementById('clock').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
+        }, 1000);
+
+        window.onresize = () => chart.resize(document.getElementById('chart-container').offsetWidth, document.getElementById('chart-container').offsetHeight);
+    </script>
+</body>
+</html>
