@@ -2,23 +2,22 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Polymarket Sniper Final</title>
+    <title>Polymarket Sniper | Fixed Version</title>
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
-        :root { --bg: #05070a; --panel: #0b0e14; --border: #1d2127; --accent: #00ffad; }
+        :root { --bg: #05070a; --panel: #0b0e14; --border: #1d2127; }
         body { background: var(--bg); color: #e1e4e8; font-family: 'JetBrains Mono', monospace; font-size: 11px; margin: 0; overflow: hidden; }
-        .grid-layout { display: grid; grid-template-columns: 280px 1fr 300px; grid-template-rows: 1fr 140px; height: 100vh; gap: 6px; padding: 6px; }
+        .grid-layout { display: grid; grid-template-columns: 280px 1fr 300px; height: 100vh; gap: 6px; padding: 6px; }
         .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; }
         .header-sub { color: #5d6773; font-size: 9px; text-transform: uppercase; font-weight: bold; }
-        .trade-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 2px 6px; border-bottom: 1px solid #161b22; font-size: 10px; }
-        #chart-container { width: 100%; height: 100%; min-height: 300px; }
+        #chart-container { width: 100%; height: 100%; }
     </style>
 </head>
 <body class="grid-layout">
 
     <aside class="flex flex-col gap-2 overflow-hidden">
-        <div class="panel p-3 h-1/3">
+        <div class="panel p-3 h-1/2">
             <h3 class="header-sub mb-2 text-blue-400">📊 Order Book</h3>
             <div id="asks" class="text-[#ff3b69]"></div>
             <div id="spread" class="text-center py-1 border-y border-gray-800 my-1 text-gray-500">---</div>
@@ -27,16 +26,16 @@
         <div class="panel flex-1">
             <div class="p-2 border-b border-gray-800 flex justify-between">
                 <span class="header-sub text-white">Live Sales</span>
-                <span id="ws-status" class="text-[8px] text-green-500 bg-green-500/10 px-1 rounded">WS CONNECTING</span>
+                <span id="ws-status" class="text-[8px] text-yellow-500 bg-yellow-500/10 px-1 rounded">IDLE</span>
             </div>
-            <div id="sales-feed" class="flex-1 overflow-y-auto"></div>
+            <div id="sales-feed" class="flex-1 overflow-y-auto p-2"></div>
         </div>
     </aside>
 
     <main class="panel relative">
         <div class="absolute top-3 left-3 z-50 bg-black/80 p-2 border border-gray-800 rounded">
             <p class="header-sub">BTC/USDT Spot</p>
-            <p id="main-price" class="text-xl font-bold text-white">0.00</p>
+            <p id="main-price" class="text-xl font-bold">0.00</p>
             <p id="strike-diff" class="text-[10px] text-gray-500">-- vs strike</p>
         </div>
         <div id="chart-container"></div>
@@ -44,137 +43,88 @@
 
     <aside class="flex flex-col gap-2">
         <div class="panel p-4 border-blue-500/30">
-            <h3 class="header-sub mb-4 text-center">Polymarket Midpoint</h3>
+            <h3 class="header-sub mb-4 text-center">Polymarket</h3>
             <div class="bg-black/40 p-4 border border-gray-800 rounded text-center">
                 <p id="poly-val" class="text-4xl font-black">--¢</p>
                 <div class="w-full bg-gray-900 h-1.5 mt-3 rounded-full overflow-hidden">
                     <div id="poly-bar" class="bg-blue-500 h-full transition-all" style="width: 0%"></div>
                 </div>
             </div>
-            <div id="sync-status" class="text-[8px] text-center mt-2 text-gray-500 uppercase">Syncing via Proxy...</div>
+            <p id="token-status" class="text-[8px] text-center mt-2 text-gray-500">CONNECTING...</p>
         </div>
         <div class="panel flex-1 flex flex-col items-center justify-center">
-            <span class="header-sub">Entry Window</span>
+            <span class="header-sub">Time Remaining</span>
             <div id="timer" class="text-6xl font-black">08:00</div>
         </div>
     </aside>
 
-    <footer class="col-span-3 panel grid grid-cols-4 gap-4 p-4">
-        <div><p class="header-sub text-green-500">Trend</p><p class="font-bold">BULLISH ▲</p></div>
-        <div><p class="header-sub">Token Status</p><p id="token-status" class="font-bold">IDLE</p></div>
-        <div><p class="header-sub">Current Strike</p><p id="strike-val" class="text-sm font-bold text-blue-400">~68,000</p></div>
-        <div><p class="header-sub">Proxy</p><p class="text-[9px] truncate text-gray-500">popkosasha86.workers.dev</p></div>
-    </footer>
-
     <script>
-        // --- ДАННЫЕ (ОБНОВЛЕНО) ---
         const TOKEN_ID = "73386326250505661166199820758407085740901435999806488177463982633430474049621";
-        const STRIKE = 68000; 
-        const PROXY = "https://groqproxy.popkosasha86.workers.dev/?url=";
+        const STRIKE = 68000;
+        const PROXY = "https://api.allorigins.win/raw?url="; // Запасной прокси для теста
 
-        let lastPrice = 0;
         let chart, candleSeries;
 
-        // 1. Инициализация графика
         function initChart() {
             const container = document.getElementById('chart-container');
+            // Исправленный синтаксис для 4-й версии Lightweight Charts
             chart = LightweightCharts.createChart(container, {
                 layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
                 grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
                 timeScale: { borderColor: '#1d2127', timeVisible: true }
             });
+            
+            // НОВОЕ: правильный метод создания серии
             candleSeries = chart.addCandlestickSeries({
                 upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false, wickUpColor: '#00ffad', wickDownColor: '#ff3b69'
             });
-            
-            // Загрузка свечей
+
             fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100")
                 .then(r => r.json()).then(d => {
                     candleSeries.setData(d.map(x => ({
                         time: x[0]/1000, open: +x[1], high: +x[2], low: +x[3], close: +x[4]
                     })));
-                    // Лечим пустой экран
-                    setTimeout(() => chart.resize(container.offsetWidth, container.offsetHeight), 500);
+                    chart.timeScale().fitContent();
                 });
         }
 
-        // 2. WebSocket Binance
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade/btcusdt@depth5@100ms');
         ws.onmessage = (e) => {
             const d = JSON.parse(e.data);
             if (d.e === 'trade') {
-                lastPrice = +d.p;
-                document.getElementById('main-price').innerText = lastPrice.toLocaleString();
-                const diff = lastPrice - STRIKE;
-                document.getElementById('strike-diff').innerText = `${diff > 0 ? '+' : ''}${diff.toFixed(2)} vs strike`;
-                document.getElementById('strike-diff').className = `text-[10px] ${diff > 0 ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
-                
-                // Лента сделок
-                const row = document.createElement('div');
-                row.className = `trade-row ${!d.m ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
-                row.innerHTML = `<span>${new Date().toLocaleTimeString()}</span><span>${(+d.p).toFixed(1)}</span><span class="text-right">${(+d.q).toFixed(3)}</span>`;
-                const feed = document.getElementById('sales-feed');
-                feed.prepend(row);
-                if(feed.children.length > 20) feed.lastChild.remove();
+                document.getElementById('main-price').innerText = (+d.p).toLocaleString();
                 document.getElementById('ws-status').innerText = 'WS LIVE';
-            } else if (d.asks) {
-                document.getElementById('asks').innerHTML = d.asks.map(x => `<div class="flex justify-between"><span>${(+x[0]).toFixed(1)}</span><span>${(+x[1]).toFixed(3)}</span></div>`).reverse().join('');
-                document.getElementById('bids').innerHTML = d.bids.map(x => `<div class="flex justify-between"><span>${(+x[0]).toFixed(1)}</span><span>${(+x[1]).toFixed(3)}</span></div>`).join('');
-                document.getElementById('spread').innerText = `Spread: ${(d.asks[0][0]-d.bids[0][0]).toFixed(2)}`;
+                document.getElementById('ws-status').className = 'text-[8px] text-green-500 bg-green-500/10 px-1 rounded';
+                
+                const row = `<div>${new Date().toLocaleTimeString()} | ${(+d.p).toFixed(1)}</div>`;
+                const feed = document.getElementById('sales-feed');
+                feed.insertAdjacentHTML('afterbegin', row);
+                if(feed.children.length > 15) feed.lastChild.remove();
             }
         };
 
-        // 3. Polymarket Data
-       async function fetchPoly() {
-            // Список прокси: твой первый, остальные запасные
-            const proxyList = [
-                "https://groqproxy.popkosasha86.workers.dev/?url=",
-                "https://api.allorigins.win/raw?url=",
-                "https://corsproxy.io/?"
-            ];
-            
-            const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
-            
-            for (let proxy of proxyList) {
-                try {
-                    const res = await fetch(proxy + encodeURIComponent(target));
-                    if (!res.ok) continue; // Если этот прокси сдох, пробуем следующий
-                    
-                    const data = await res.json();
-                    if (data && data.midpoint) {
-                        const m = parseFloat(data.midpoint);
-                        document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
-                        document.getElementById('poly-bar').style.width = (m * 100) + '%';
-                        document.getElementById('token-status').innerText = 'ACTIVE SYNC';
-                        document.getElementById('token-status').className = 'font-bold text-green-500';
-                        return; // Данные получены, выходим из функции
-                    }
-                } catch (e) {
-                    console.warn("Прокси не ответил, пробую следующий...");
+        async function fetchPoly() {
+            try {
+                const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
+                const res = await fetch(PROXY + encodeURIComponent(target));
+                const data = await res.json();
+                if (data && data.midpoint) {
+                    const m = parseFloat(data.midpoint);
+                    document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
+                    document.getElementById('poly-bar').style.width = (m * 100) + '%';
+                    document.getElementById('token-status').innerText = 'SYNC OK';
                 }
+            } catch (e) {
+                document.getElementById('token-status').innerText = 'POLY OFFLINE';
             }
-            
-            // Если ни один прокси не сработал
-            document.getElementById('token-status').innerText = 'ALL PROXIES FAILED';
-            document.getElementById('token-status').className = 'font-bold text-red-500';
         }
 
-        // Запуск
         initChart();
         setInterval(fetchPoly, 5000);
         fetchPoly();
 
-        // Таймер
-        let s = 480;
-        setInterval(() => {
-            s--; if(s<0) s=480;
-            const min = Math.floor(s/60); const sec = s%60;
-            document.getElementById('timer').innerText = `${min}:${sec<10?'0':''}${sec}`;
-        }, 1000);
-
-        // Ресайз графика при изменении окна
         window.addEventListener('resize', () => {
-            if(chart) chart.resize(document.getElementById('chart-container').offsetWidth, document.getElementById('chart-container').offsetHeight);
+            chart.resize(document.getElementById('chart-container').offsetWidth, document.getElementById('chart-container').offsetHeight);
         });
     </script>
 </body>
