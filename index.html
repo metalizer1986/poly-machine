@@ -117,24 +117,29 @@
         };
 
         // 3. Polymarket (С исправленным прокси)
-        async function fetchPoly() {
+       async function fetchPoly() {
             try {
-                const url = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
-                const res = await fetch(PROXY + encodeURIComponent(url));
+                // Прямой запрос через AllOrigins
+                const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
+                const res = await fetch(PROXY + target);
+                
+                if (!res.ok) throw new Error('Proxy Blocked');
+                
                 const data = await res.json();
                 
                 if (data && data.midpoint) {
                     const m = parseFloat(data.midpoint);
                     document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
                     document.getElementById('poly-bar').style.width = (m * 100) + '%';
-                    document.getElementById('token-status').innerText = 'REAL-TIME SYNC OK';
-                    document.getElementById('token-status').classList.replace('text-gray-500', 'text-green-400');
+                    document.getElementById('token-status').innerText = 'SYNC OK';
+                    document.getElementById('token-status').className = 'text-[8px] text-center mt-2 text-green-400';
                 } else {
-                    document.getElementById('token-status').innerText = 'ID EXPIRED / NULL';
-                    document.getElementById('token-status').classList.replace('text-green-400', 'text-red-500');
+                    document.getElementById('token-status').innerText = 'DATA EMPTY (CHECK ID)';
+                    document.getElementById('token-status').className = 'text-[8px] text-center mt-2 text-yellow-500';
                 }
             } catch (e) {
-                document.getElementById('token-status').innerText = 'PROXY ERROR';
+                document.getElementById('token-status').innerText = 'PROXY 403 / FORBIDDEN';
+                document.getElementById('token-status').className = 'text-[8px] text-center mt-2 text-red-500';
             }
         }
 
