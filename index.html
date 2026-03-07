@@ -125,26 +125,38 @@
         };
 
         // 3. Polymarket Data
-        async function fetchPoly() {
-            try {
-                const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
-                const res = await fetch(PROXY + encodeURIComponent(target));
-                const data = await res.json();
-                
-                if (data.midpoint) {
-                    const m = +data.midpoint;
-                    document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
-                    document.getElementById('poly-bar').style.width = (m * 100) + '%';
-                    document.getElementById('token-status').innerText = 'ACTIVE SYNC';
-                    document.getElementById('token-status').className = 'font-bold text-green-500';
-                } else {
-                    document.getElementById('token-status').innerText = 'TOKEN EXPIRED';
-                    document.getElementById('token-status').className = 'font-bold text-red-500';
+       async function fetchPoly() {
+            // Список прокси: твой первый, остальные запасные
+            const proxyList = [
+                "https://groqproxy.popkosasha86.workers.dev/?url=",
+                "https://api.allorigins.win/raw?url=",
+                "https://corsproxy.io/?"
+            ];
+            
+            const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
+            
+            for (let proxy of proxyList) {
+                try {
+                    const res = await fetch(proxy + encodeURIComponent(target));
+                    if (!res.ok) continue; // Если этот прокси сдох, пробуем следующий
+                    
+                    const data = await res.json();
+                    if (data && data.midpoint) {
+                        const m = parseFloat(data.midpoint);
+                        document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
+                        document.getElementById('poly-bar').style.width = (m * 100) + '%';
+                        document.getElementById('token-status').innerText = 'ACTIVE SYNC';
+                        document.getElementById('token-status').className = 'font-bold text-green-500';
+                        return; // Данные получены, выходим из функции
+                    }
+                } catch (e) {
+                    console.warn("Прокси не ответил, пробую следующий...");
                 }
-            } catch (e) {
-                console.error("Poly error");
-                document.getElementById('token-status').innerText = 'PROXY ERROR';
             }
+            
+            // Если ни один прокси не сработал
+            document.getElementById('token-status').innerText = 'ALL PROXIES FAILED';
+            document.getElementById('token-status').className = 'font-bold text-red-500';
         }
 
         // Запуск
