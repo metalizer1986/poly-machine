@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Polymarket Sniper | 15M BTC</title>
+    <title>Polymarket Sniper | 67404...44375</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -35,7 +35,7 @@
 
     <main class="panel relative">
         <div class="absolute top-3 left-3 z-50 bg-black/80 p-3 border border-gray-800 rounded">
-            <p class="header-sub">BTC/USDT Spot</p>
+            <p class="header-sub text-gray-400">BTC/USDT Spot</p>
             <p id="main-price" class="text-2xl font-bold text-white">0.00</p>
             <p id="strike-diff" class="text-xs font-bold">-- vs strike</p>
         </div>
@@ -51,19 +51,19 @@
                     <div id="poly-bar" class="bg-blue-500 h-full transition-all duration-700" style="width: 0%"></div>
                 </div>
             </div>
-            <p id="token-status" class="text-[9px] text-center mt-3 text-yellow-500 font-bold uppercase tracking-widest">Awaiting Data...</p>
+            <p id="token-status" class="text-[9px] text-center mt-3 text-green-500 font-bold uppercase tracking-widest">Awaiting Data...</p>
         </div>
         <div class="panel flex-1 flex flex-col items-center justify-center bg-black/20">
             <span class="header-sub">Closing In</span>
-            <div id="timer" class="text-7xl font-black text-white">08:00</div>
-            <div id="signal-box" class="mt-4 px-3 py-1 rounded border border-gray-800 text-[10px] text-gray-500 font-bold">STABLE</div>
+            <div id="timer" class="text-7xl font-black text-white">00:00</div>
+            <div id="signal-box" class="mt-4 px-4 py-2 rounded border border-gray-800 text-[11px] font-bold text-gray-500 uppercase">Searching Edge...</div>
         </div>
     </aside>
 
     <script>
-        // ДАННЫЕ ИЗ ТВОЕГО ЗАПРОСА
+        // ДАННЫЕ (ТВОЙ ТОКЕН И СТРАЙК)
         const TOKEN_ID = "67404634114493846562791118559100324093748944985408299978272941795392737044375";
-        const STRIKE = 67600; // ЦЕНА ИЗ ТВОЕГО КОНТРАКТА
+        const STRIKE = 67600; 
         const PROXY = "https://api.allorigins.win/raw?url=";
 
         let chart, candleSeries, lastPrice = 0;
@@ -115,33 +115,39 @@
         async function fetchPoly() {
             try {
                 const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
-                const res = await fetch(PROXY + encodeURIComponent(target));
+                // Используем AllOrigins с кэш-бастером, чтобы данные были всегда свежими
+                const res = await fetch(`${PROXY}${encodeURIComponent(target)}&cb=${Date.now()}`);
                 const data = await res.json();
                 
                 if (data && data.midpoint) {
                     const m = parseFloat(data.midpoint);
-                    document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
+                    const cents = (m * 100).toFixed(1);
+                    document.getElementById('poly-val').innerText = cents + '¢';
                     document.getElementById('poly-bar').style.width = (m * 100) + '%';
                     
                     const status = document.getElementById('token-status');
-                    status.innerText = 'SYNC ACTIVE';
+                    status.innerText = 'SYNC OK (200)';
                     status.className = 'text-[9px] text-center mt-3 text-green-500 font-bold';
 
-                    // Простейшая логика сигнала
+                    // Логика сигналов
                     const sig = document.getElementById('signal-box');
-                    if (lastPrice > STRIKE && m < 0.7) {
-                        sig.innerText = 'BULLISH EDGE';
-                        sig.className = 'mt-4 px-3 py-1 rounded border border-green-500 bg-green-500/10 text-[10px] text-green-500 font-bold';
+                    if (lastPrice > STRIKE && m < 0.8) {
+                        sig.innerText = 'BULLISH EDGE: BUY YES';
+                        sig.className = 'mt-4 px-4 py-2 rounded border border-green-500 bg-green-500/10 text-[11px] text-green-500 font-bold';
+                    } else if (lastPrice < STRIKE && m > 0.2) {
+                        sig.innerText = 'BEARISH EDGE: BUY NO';
+                        sig.className = 'mt-4 px-4 py-2 rounded border border-[#ff3b69] bg-[#ff3b69]/10 text-[11px] text-[#ff3b69] font-bold';
                     } else {
-                        sig.innerText = 'NEUTRAL';
-                        sig.className = 'mt-4 px-3 py-1 rounded border border-gray-800 text-[10px] text-gray-500 font-bold';
+                        sig.innerText = 'NO CLEAR EDGE';
+                        sig.className = 'mt-4 px-4 py-2 rounded border border-gray-800 text-[11px] text-gray-500 font-bold';
                     }
                 }
             } catch (e) {
-                document.getElementById('token-status').innerText = 'RECONNECTING PROXY...';
+                document.getElementById('token-status').innerText = 'PROXY RECONNECT...';
             }
         }
 
+        // Таймер
         let s = 480;
         setInterval(() => {
             s--; if(s<0) s=480;
@@ -150,11 +156,11 @@
         }, 1000);
 
         initChart();
-        setInterval(fetchPoly, 5000);
+        setInterval(fetchPoly, 3000); // Опрос раз в 3 секунды
         fetchPoly();
 
         window.addEventListener('resize', () => {
-            chart.resize(document.getElementById('chart-container').offsetWidth, document.getElementById('chart-container').offsetHeight);
+            if(chart) chart.resize(document.getElementById('chart-container').offsetWidth, document.getElementById('chart-container').offsetHeight);
         });
     </script>
 </body>
