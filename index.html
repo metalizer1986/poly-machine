@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Polymarket Sniper | 67404...44375</title>
+    <title>Polymarket Sniper | 15M-BTC</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -13,7 +13,7 @@
         .header-sub { color: #5d6773; font-size: 9px; text-transform: uppercase; font-weight: bold; }
         #chart-container { width: 100%; height: 100%; }
         .trade-row { font-size: 10px; border-bottom: 1px solid #161b22; padding: 2px 6px; display: flex; justify-content: space-between; }
-        .glow-text { text-shadow: 0 0 10px rgba(0, 255, 173, 0.3); }
+        .glow-text { text-shadow: 0 0 12px rgba(0, 255, 173, 0.4); }
     </style>
 </head>
 <body class="grid-layout">
@@ -27,49 +27,46 @@
         </div>
         <div class="panel flex-1">
             <div class="p-2 border-b border-gray-800 flex justify-between">
-                <span class="header-sub text-white">Live Sales</span>
-                <span id="ws-status" class="text-[8px] text-green-500 bg-green-500/10 px-1 rounded font-bold">WS LIVE</span>
+                <span class="header-sub text-white font-bold">Live Sales</span>
+                <span id="ws-status" class="text-[8px] text-green-500 bg-green-500/10 px-1 rounded">WS CONNECTED</span>
             </div>
             <div id="sales-feed" class="flex-1 overflow-y-auto"></div>
         </div>
     </aside>
 
     <main class="panel relative">
-        <div class="absolute top-3 left-3 z-50 bg-black/80 p-3 border border-gray-800 rounded">
+        <div class="absolute top-3 left-3 z-50 bg-black/85 p-3 border border-gray-800 rounded backdrop-blur-md">
             <p class="header-sub text-gray-400">BTC/USDT Spot</p>
-            <p id="main-price" class="text-2xl font-bold text-white glow-text">0.00</p>
-            <p id="strike-diff" class="text-xs font-bold">-- vs strike</p>
+            <p id="main-price" class="text-3xl font-black text-white glow-text">0.00</p>
+            <p id="strike-diff" class="text-[10px] font-bold mt-1">-- vs strike</p>
         </div>
         <div id="chart-container"></div>
     </main>
 
     <aside class="flex flex-col gap-2">
-        <div class="panel p-4 border-blue-500/40 bg-blue-900/5">
+        <div class="panel p-4 border-blue-500/40 bg-blue-900/10 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]">
             <h3 class="header-sub mb-4 text-center">Polymarket Midpoint</h3>
-            <div class="bg-black/60 p-5 border border-gray-800 rounded text-center">
-                <p id="poly-val" class="text-5xl font-black text-white glow-text">--¢</p>
-                <div class="w-full bg-gray-900 h-2 mt-4 rounded-full overflow-hidden">
-                    <div id="poly-bar" class="bg-blue-500 h-full transition-all duration-700" style="width: 0%"></div>
+            <div class="bg-black/60 p-6 border border-gray-800 rounded-lg text-center shadow-xl">
+                <p id="poly-val" class="text-6xl font-black text-white glow-text">--¢</p>
+                <div class="w-full bg-gray-900 h-2 mt-5 rounded-full overflow-hidden">
+                    <div id="poly-bar" class="bg-blue-500 h-full transition-all duration-1000" style="width: 0%"></div>
                 </div>
             </div>
-            <p id="token-status" class="text-[9px] text-center mt-3 text-yellow-500 font-bold uppercase tracking-widest">Auto-Routing...</p>
+            <p id="token-status" class="text-[9px] text-center mt-3 text-yellow-500 font-bold tracking-widest uppercase">Initializing...</p>
         </div>
         <div class="panel flex-1 flex flex-col items-center justify-center bg-black/20">
             <span class="header-sub text-gray-500">Closing In</span>
             <div id="timer" class="text-7xl font-black text-white">00:00</div>
-            <div id="signal-box" class="mt-4 px-4 py-2 rounded border border-gray-800 text-[11px] font-bold text-gray-400 uppercase">Analyzing Edge...</div>
+            <div id="signal-box" class="mt-6 px-5 py-2 rounded-full border border-gray-800 text-[11px] font-black text-gray-500 uppercase tracking-tighter">Scanning...</div>
         </div>
     </aside>
 
     <script>
         const TOKEN_ID = "67404634114493846562791118559100324093748944985408299978272941795392737044375";
         const STRIKE = 67600; 
-        
-        // Массив прокси для надежности
         const PROXIES = [
-            "https://groqproxy.popkosasha86.workers.dev/?url=", 
             "https://api.allorigins.win/raw?url=",
-            "https://corsproxy.io/?"
+            "https://groqproxy.popkosasha86.workers.dev/?url="
         ];
 
         let chart, candleSeries, lastPrice = 0;
@@ -84,6 +81,7 @@
             candleSeries = chart.addCandlestickSeries({
                 upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false, wickUpColor: '#00ffad', wickDownColor: '#ff3b69'
             });
+            candleSeries.createPriceLine({ price: STRIKE, color: '#ff3b69', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'STRIKE' });
 
             fetch("https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100")
                 .then(r => r.json()).then(d => {
@@ -91,7 +89,6 @@
                         time: x[0]/1000, open: +x[1], high: +x[2], low: +x[3], close: +x[4]
                     })));
                     chart.timeScale().fitContent();
-                    setTimeout(() => chart.resize(container.offsetWidth, container.offsetHeight), 500);
                 });
         }
 
@@ -104,11 +101,11 @@
                 const diff = lastPrice - STRIKE;
                 const diffEl = document.getElementById('strike-diff');
                 diffEl.innerText = `${diff > 0 ? '+' : ''}${diff.toFixed(2)} vs strike`;
-                diffEl.className = `text-xs font-bold ${diff > 0 ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
+                diffEl.className = `text-[10px] font-bold ${diff > 0 ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
                 
                 const feed = document.getElementById('sales-feed');
                 feed.insertAdjacentHTML('afterbegin', `<div class="trade-row ${!d.m ? 'text-[#00ffad]' : 'text-[#ff3b69]'}"><span>${new Date().toLocaleTimeString()}</span><span>${(+d.p).toFixed(1)}</span></div>`);
-                if(feed.children.length > 25) feed.lastChild.remove();
+                if(feed.children.length > 20) feed.lastChild.remove();
             } else if (d.asks) {
                 document.getElementById('asks').innerHTML = d.asks.map(x => `<div class="flex justify-between"><span>${(+x[0]).toFixed(1)}</span><span>${(+x[1]).toFixed(3)}</span></div>`).reverse().join('');
                 document.getElementById('bids').innerHTML = d.bids.map(x => `<div class="flex justify-between"><span>${(+x[0]).toFixed(1)}</span><span>${(+x[1]).toFixed(3)}</span></div>`).join('');
@@ -116,58 +113,59 @@
             }
         };
 
-        // Умная функция получения данных Polymarket
         async function fetchPoly() {
-            const targetUrl = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
+            const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN_ID}`;
             
-            for (let proxyBase of PROXIES) {
+            for (let proxy of PROXIES) {
                 try {
-                    const fullUrl = `${proxyBase}${encodeURIComponent(targetUrl)}&cb=${Date.now()}`;
-                    const res = await fetch(fullUrl, { cache: 'no-store' });
+                    const res = await fetch(`${proxy}${encodeURIComponent(target)}&cb=${Date.now()}`);
+                    if (!res.ok) continue;
                     
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data && data.midpoint) {
-                            const m = parseFloat(data.midpoint);
-                            document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
-                            document.getElementById('poly-bar').style.width = (m * 100) + '%';
-                            
-                            const status = document.getElementById('token-status');
-                            status.innerText = proxyBase.includes('workers.dev') ? 'SYNC: WORKER' : 'SYNC: BACKUP';
-                            status.className = 'text-[9px] text-center mt-3 text-green-500 font-bold';
-                            updateSignal(m);
-                            return; // Выходим, если данные получены
-                        }
+                    const data = await res.json();
+                    if (data && data.midpoint) {
+                        const m = parseFloat(data.midpoint);
+                        document.getElementById('poly-val').innerText = (m * 100).toFixed(1) + '¢';
+                        document.getElementById('poly-bar').style.width = (m * 100) + '%';
+                        
+                        const st = document.getElementById('token-status');
+                        st.innerText = 'SYNC ACTIVE';
+                        st.className = 'text-[9px] text-center mt-3 text-green-500 font-bold';
+                        updateSignal(m);
+                        return;
                     }
-                } catch (e) { continue; }
+                } catch (e) { console.log("Proxy fail, trying next..."); }
             }
-            document.getElementById('token-status').innerText = 'ROUTING ERROR - RETRYING...';
-            document.getElementById('token-status').className = 'text-[9px] text-center mt-3 text-red-500 font-bold';
+            document.getElementById('token-status').innerText = 'LINK RETRYING...';
         }
 
         function updateSignal(m) {
             const sig = document.getElementById('signal-box');
-            if (lastPrice > STRIKE && m < 0.8) {
+            const polyCents = m * 100;
+            // Логика: если цена BTC выше страйка, а YES стоит дешевле 75 центов — явный EDGE
+            if (lastPrice > STRIKE + 10 && polyCents < 75) {
                 sig.innerText = 'BULLISH EDGE: BUY YES';
-                sig.className = 'mt-4 px-4 py-2 rounded border border-green-500 bg-green-500/10 text-[11px] text-green-500 font-bold animate-pulse';
-            } else if (lastPrice < STRIKE && m > 0.2) {
+                sig.className = 'mt-6 px-5 py-2 rounded-full border border-green-500 bg-green-500/20 text-[11px] font-black text-green-400 animate-pulse';
+            } else if (lastPrice < STRIKE - 10 && polyCents > 25) {
                 sig.innerText = 'BEARISH EDGE: BUY NO';
-                sig.className = 'mt-4 px-4 py-2 rounded border border-[#ff3b69] bg-[#ff3b69]/10 text-[11px] text-[#ff3b69] font-bold animate-pulse';
+                sig.className = 'mt-6 px-5 py-2 rounded-full border border-red-500 bg-red-500/20 text-[11px] font-black text-red-400 animate-pulse';
             } else {
-                sig.innerText = 'NO CLEAR EDGE';
-                sig.className = 'mt-4 px-4 py-2 rounded border border-gray-800 text-[11px] text-gray-500 font-bold';
+                sig.innerText = 'MARKET STABLE';
+                sig.className = 'mt-6 px-5 py-2 rounded-full border border-gray-800 text-[11px] font-black text-gray-500';
             }
         }
 
-        let s = 480;
+        let s = 445; 
         setInterval(() => {
-            s--; if(s<0) s=480;
-            const min = Math.floor(s/60); const sec = s%60;
-            document.getElementById('timer').innerText = `${min}:${sec<10?'0':''}${sec}`;
+            s--; if(s<0) s=900;
+            const m = Math.floor(s/60); const sc = s%60;
+            document.getElementById('timer').innerText = `${m}:${sc<10?'0':''}${sc}`;
         }, 1000);
 
         initChart();
-        setInterval(fetchPoly, 3500);
+        // Запускаем опрос с плавающим интервалом, чтобы не злить прокси
+        (function loop() {
+            setTimeout(() => { fetchPoly(); loop(); }, 4000 + Math.random() * 2000);
+        })();
         fetchPoly();
 
         window.addEventListener('resize', () => {
