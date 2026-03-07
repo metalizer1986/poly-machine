@@ -1,112 +1,105 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL | NO-VPN-CONFLICT</title>
+    <title>STRIKE TERMINAL v3</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#05070a] text-gray-300 font-mono text-[11px] h-screen overflow-hidden p-2">
-    <div class="grid grid-cols-[280px_1fr_300px] gap-2 h-full">
-        
-        <div class="bg-[#0b0e14] border border-[#1d2127] rounded flex flex-col overflow-hidden">
-            <div class="p-2 border-b border-gray-800 text-blue-400 font-bold">ORDER BOOK</div>
-            <div id="book" class="flex-1 p-2 space-y-1"></div>
-            <div class="p-2 border-t border-gray-800">
-                <div class="text-[9px] text-gray-500 uppercase">Live Tape</div>
-                <div id="tape" class="h-40 overflow-y-auto text-[10px]"></div>
-            </div>
+<body class="bg-[#05070a] text-gray-400 font-mono text-[11px] overflow-hidden h-screen p-2">
+    <div class="grid grid-cols-[250px_1fr_300px] gap-2 h-full">
+        <div class="bg-[#0b0e14] border border-gray-800 rounded p-2 flex flex-col">
+            <div class="text-blue-500 font-bold mb-2 uppercase">Order Book</div>
+            <div id="ob-data" class="flex-1 overflow-hidden space-y-1"></div>
         </div>
 
-        <div class="bg-[#0b0e14] border border-[#1d2127] rounded relative">
-            <div class="absolute top-4 left-4 z-50 bg-black/60 p-3 rounded border border-gray-800 backdrop-blur">
-                <div class="text-[10px] text-gray-500">BTC/USDT</div>
-                <div id="price" class="text-3xl font-bold text-white tracking-tighter">0.00</div>
-                <div id="diff" class="text-xs font-bold">-- vs strike</div>
+        <div class="bg-[#0b0e14] border border-gray-800 rounded relative">
+            <div class="absolute top-4 left-4 z-50 bg-black/70 p-3 rounded border border-gray-700 backdrop-blur-sm">
+                <div class="text-[10px] text-gray-500">BTC PRICE</div>
+                <div id="cur-price" class="text-3xl font-bold text-white tracking-tighter">0.00</div>
+                <div id="cur-diff" class="text-[10px] font-bold">Waiting strike...</div>
             </div>
-            <div id="chart" class="w-full h-full"></div>
+            <div id="chart-box" class="w-full h-full"></div>
         </div>
 
         <div class="flex flex-col gap-2">
-            <div class="bg-[#0b0e14] border border-blue-900/50 rounded p-4 text-center">
-                <div class="text-[10px] text-gray-500 uppercase mb-4">Polymarket YES Price</div>
-                <div id="poly-val" class="text-6xl font-black text-white py-4">--¢</div>
-                <div id="status" class="text-[9px] font-bold text-yellow-600">CONNECTING...</div>
+            <div class="bg-[#0b0e14] border border-blue-900/40 rounded p-5 text-center">
+                <div class="text-xs text-gray-500 uppercase">Polymarket YES Contract</div>
+                <div id="poly-price" class="text-6xl font-black text-white py-2">--¢</div>
+                <div id="p-status" class="text-[8px] font-bold text-red-500">INITIATING...</div>
             </div>
-            
-            <div class="bg-[#0b0e14] border border-[#1d2127] rounded flex-1 flex flex-col items-center justify-center p-6 text-center">
-                <div class="text-[10px] text-gray-500 uppercase">Expiration</div>
-                <div id="timer" class="text-6xl font-black text-white my-4">06:00</div>
-                <div id="signal" class="w-full py-3 rounded-full border border-gray-800 font-bold text-gray-600">WAITING SIGNAL</div>
+            <div class="bg-[#0b0e14] border border-gray-800 rounded flex-1 flex flex-col items-center justify-center p-4">
+                <div id="t-timer" class="text-7xl font-bold text-white mb-4">05:30</div>
+                <div id="t-signal" class="w-full py-4 rounded border border-gray-800 text-center font-bold text-gray-600">SCANNING...</div>
             </div>
         </div>
     </div>
 
     <script>
         (function() {
-            const TID = "67404634114493846562791118559100324093748944985408299978272941795392737044375";
             const STRIKE = 67600;
+            const TOKEN = "67404634114493846562791118559100324093748944985408299978272941795392737044375";
             let lastBTC = 0;
 
-            // Chart Init
-            const chart = LightweightCharts.createChart(document.getElementById('chart'), {
+            // Chart Setup
+            const chart = LightweightCharts.createChart(document.getElementById('chart-box'), {
                 layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
                 grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
-                timeScale: { timeVisible: true, borderColor: '#1d2127' }
+                timeScale: { borderColor: '#1d2127', timeVisible: true }
             });
-            const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
-            series.createPriceLine({ price: STRIKE, color: '#ff3b69', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'STRIKE' });
+            const s = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
+            s.createPriceLine({ price: STRIKE, color: '#ff3b69', lineWidth: 1, lineStyle: 2, title: 'STRIKE' });
 
-            // Binance WS
+            // Binance WebSocket
             const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
             ws.onmessage = e => {
                 const d = JSON.parse(e.data);
                 lastBTC = parseFloat(d.p);
-                document.getElementById('price').innerText = lastBTC.toLocaleString();
-                const delta = lastBTC - STRIKE;
-                const diffEl = document.getElementById('diff');
-                diffEl.innerText = (delta > 0 ? '+' : '') + delta.toFixed(2);
-                diffEl.className = `text-xs font-bold ${delta > 0 ? 'text-green-400' : 'text-red-400'}`;
+                document.getElementById('cur-price').innerText = lastBTC.toLocaleString();
+                const diff = lastBTC - STRIKE;
+                const el = document.getElementById('cur-diff');
+                el.innerText = (diff > 0 ? '+' : '') + diff.toFixed(2) + " to strike";
+                el.className = `text-[10px] font-bold ${diff > 0 ? 'text-green-500' : 'text-red-500'}`;
             };
 
-            // Poly Fetch Logic
-            async function syncPoly() {
+            // Poly Logic with Error Handling
+            async function getPoly() {
+                const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN}`;
+                // Пытаемся использовать corsproxy.io как альтернативу, если AllOrigins под VPN тупит
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}&_=${Date.now()}`;
+                
                 try {
-                    const target = encodeURIComponent(`https://clob.polymarket.com/midpoint?token_id=${TID}`);
-                    const response = await fetch(`https://api.allorigins.win/raw?url=${target}&cache=${Date.now()}`);
-                    if(!response.ok) throw new Error();
-                    const data = await response.json();
-                    
-                    if(data && data.midpoint) {
-                        const m = parseFloat(data.midpoint);
-                        const cents = (m * 100).toFixed(1);
-                        document.getElementById('poly-val').innerText = cents + '¢';
-                        document.getElementById('status').innerText = 'SYNC OK';
-                        document.getElementById('status').className = 'text-[9px] font-bold text-green-500';
+                    const r = await fetch(proxyUrl);
+                    if (!r.ok) throw 'error';
+                    const data = await r.json();
+                    if (data && data.midpoint) {
+                        const val = (parseFloat(data.midpoint) * 100).toFixed(1);
+                        document.getElementById('poly-price').innerText = val + '¢';
+                        document.getElementById('p-status').innerText = 'STABLE CONNECTION';
+                        document.getElementById('p-status').className = 'text-[8px] font-bold text-green-500';
                         
-                        const sig = document.getElementById('signal');
-                        if (lastBTC > STRIKE + 15 && m < 0.75) {
-                            sig.innerText = 'BULLISH EDGE: YES';
-                            sig.className = 'w-full py-3 rounded-full border border-green-500 bg-green-500/10 font-bold text-green-500 animate-pulse';
+                        const sig = document.getElementById('t-signal');
+                        if (lastBTC > STRIKE + 5 && val < 70) {
+                            sig.innerText = 'BULLISH EDGE: BUY YES';
+                            sig.className = 'w-full py-4 rounded border border-green-500 bg-green-500/10 text-center font-bold text-green-500 animate-pulse';
                         } else {
-                            sig.innerText = 'STABLE';
-                            sig.className = 'w-full py-3 rounded-full border border-gray-800 font-bold text-gray-500';
+                            sig.innerText = 'NO CLEAR EDGE';
+                            sig.className = 'w-full py-4 rounded border border-gray-800 text-center font-bold text-gray-600';
                         }
                     }
-                } catch(err) {
-                    document.getElementById('status').innerText = 'RETRYING...';
+                } catch(e) {
+                    document.getElementById('p-status').innerText = 'VPN/PROXY BLOCK - RETRYING...';
                 }
             }
 
-            setInterval(syncPoly, 4000);
-            syncPoly();
+            setInterval(getPoly, 5000);
+            getPoly();
 
-            // Simple Timer
-            let sec = 360;
+            let time = 338; // 5:38
             setInterval(() => {
-                sec--; if(sec < 0) sec = 360;
-                const m = Math.floor(sec/60); const s = sec%60;
-                document.getElementById('timer').innerText = `${m}:${s<10?'0':''}${s}`;
+                time--; if(time<0) time=600;
+                const min = Math.floor(time/60); const sec = time%60;
+                document.getElementById('t-timer').innerText = `${min}:${sec<10?'0':''}${sec}`;
             }, 1000);
         })();
     </script>
