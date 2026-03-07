@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Polymarket BTC Sniper | LIVE</title>
+    <title>Polymarket Sniper Pro | Terminal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -23,9 +23,9 @@
 <body class="grid-layout">
 
     <aside class="flex flex-col gap-2 overflow-hidden">
-        <div class="panel p-3">
-            <h3 class="header-sub mb-2 text-blue-400">📊 Order Book (Binance)</h3>
-            <div id="order-book" class="font-mono text-[10px] space-y-1">
+        <div class="panel p-3 h-1/3">
+            <h3 class="header-sub mb-2 text-blue-400">📊 Order Book (BTC)</h3>
+            <div id="order-book" class="font-mono text-[10px]">
                 <div id="asks" class="flex flex-col-reverse text-[#ff3b69]"></div>
                 <div id="spread" class="text-center py-1 border-y border-gray-800 my-1 text-gray-500">Spread: ---</div>
                 <div id="bids" class="flex flex-col text-[#00ffad]"></div>
@@ -34,7 +34,7 @@
         <div class="panel flex-1">
             <div class="p-2 border-b border-gray-800 flex justify-between items-center">
                 <h3 class="header-sub text-white">Live Sales</h3>
-                <span class="text-[8px] bg-green-500/20 text-green-500 px-1 rounded">WS CONNECTED</span>
+                <span id="ws-status" class="text-[8px] bg-red-500/20 text-red-500 px-1 rounded">WS OFF</span>
             </div>
             <div id="sales-feed" class="flex-1 overflow-y-auto"></div>
         </div>
@@ -42,9 +42,10 @@
 
     <main class="flex flex-col gap-2">
         <div class="panel flex-1 relative">
-            <div class="absolute top-3 left-3 z-10 bg-black/60 p-2 rounded border border-gray-800 pointer-events-none">
+            <div class="absolute top-3 left-3 z-10 bg-black/80 p-2 border border-gray-800 rounded pointer-events-none">
                 <p class="header-sub">BTC/USDT Spot</p>
-                <p id="main-price" class="text-xl font-bold text-white">---</p>
+                <p id="main-price" class="text-xl font-bold text-white">68,000.00</p>
+                <p id="price-vs-strike" class="text-[9px] mt-1">-- vs strike</p>
             </div>
             <div id="chart-container" class="w-full h-full"></div>
         </div>
@@ -62,92 +63,120 @@
             </div>
             
             <div class="mt-6 space-y-4">
-                <div class="flex justify-between items-center">
-                    <span class="header-sub">Real Edge</span>
-                    <span id="edge-value" class="text-gray-500 font-bold">CALCULATING...</span>
+                <div class="flex justify-between items-center border-b border-gray-800 pb-2">
+                    <span class="header-sub">Calculated Edge</span>
+                    <span id="edge-value" class="text-gray-500 font-bold">WAITING...</span>
                 </div>
-                <div id="signal-alert" class="hidden p-2 bg-yellow-500/10 border border-yellow-500/30 rounded text-center">
-                    <p class="text-[9px] text-yellow-500 font-bold active-signal">⚠️ ARBITRAGE OPPORTUNITY</p>
+                <div id="signal-alert" class="hidden p-2 bg-green-500/10 border border-green-500/30 rounded text-center">
+                    <p class="text-[9px] text-green-500 font-bold active-signal">🚀 HIGH CONFLUENCE BUY</p>
                 </div>
             </div>
         </div>
 
-        <div class="panel flex-1 p-4 flex flex-col items-center justify-center border-dashed border-gray-700">
+        <div class="panel flex-1 p-4 flex flex-col items-center justify-center border-dashed border-gray-700 bg-black/20">
             <p class="header-sub mb-2">Entry Window</p>
-            <div id="clock" class="text-5xl font-black text-white tracking-tighter">08:00</div>
-            <p class="text-[9px] text-green-500 font-bold mt-2 uppercase">Market Live</p>
+            <div id="clock" class="text-6xl font-black text-white tracking-tighter">00:00</div>
+            <p class="text-[9px] text-green-500 font-bold mt-2 uppercase tracking-widest">Window Open</p>
         </div>
     </aside>
 
-    <footer class="col-span-3 panel grid grid-cols-4 gap-4 p-4">
+    <footer class="col-span-3 panel grid grid-cols-4 gap-4 p-4 bg-[#05070a]">
         <div class="metric-card border-l-2 border-l-[#00ffad] pl-3">
-            <p class="header-sub text-[#00ffad]">Market Sentiment</p>
-            <p id="sentiment" class="text-sm font-bold">NEUTRAL</p>
+            <p class="header-sub text-[#00ffad]">Trend (4H)</p>
+            <p id="sentiment" class="text-sm font-bold uppercase">Bullish ▲</p>
         </div>
         <div class="metric-card border-l-2 border-l-blue-500 pl-3">
-            <p class="header-sub">Polymarket ID</p>
-            <p class="text-[8px] text-gray-500 truncate">...990579</p>
+            <p class="header-sub">Current Strategy</p>
+            <p class="text-sm font-bold text-white">BTC-15M-SNIPER</p>
         </div>
         <div class="metric-card border-l-2 border-l-yellow-500 pl-3">
-            <p class="header-sub">Signal Quality</p>
-            <p class="text-sm font-bold">REAL-TIME SYNC</p>
+            <p class="header-sub">Sync Quality</p>
+            <p class="text-sm font-bold text-yellow-500">REAL-TIME</p>
         </div>
         <div class="metric-card border-l-2 border-l-white/20 pl-3">
-            <p class="header-sub">Status</p>
-            <p class="text-[10px] text-gray-400">API: OK | WS: OK</p>
+            <p class="header-sub">Worker Proxy</p>
+            <p id="proxy-status" class="text-[9px] text-gray-400 truncate">groqproxy.popkosasha86...</p>
         </div>
     </footer>
 
     <script>
-        // --- CONFIG ---
+        // --- ПЕРЕМЕННЫЕ (ЗАМЕНИ НА СВОИ) ---
         const POLY_TOKEN_ID = "88972890853744147927469294498193288084221031430425789005801068499081864990579";
-        const PROXY = "https://corsproxy.io/?";
+        const PROXY_URL = "https://groqproxy.popkosasha86.workers.dev/?url=";
+        const STRIKE_PRICE = 68000; // Измени на страйк-цену текущего рынка
+
         let lastBtcPrice = 0;
+        let chart;
+        let candleSeries;
 
-        // --- CHART SETUP ---
-        const chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
-            layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
-            grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
-            timeScale: { borderColor: '#1d2127', timeVisible: true },
-        });
-        const candleSeries = chart.addCandlestickSeries({
-            upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false, wickUpColor: '#00ffad', wickDownColor: '#ff3b69'
-        });
+        // --- CHART INIT ---
+        function initChart() {
+            chart = LightweightCharts.createChart(document.getElementById('chart-container'), {
+                layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
+                grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
+                timeScale: { borderColor: '#1d2127', timeVisible: true },
+            });
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false, wickUpColor: '#00ffad', wickDownColor: '#ff3b69'
+            });
+            fetchHistory();
+        }
 
-        // --- BINANCE WEBSOCKET ---
+        async function fetchHistory() {
+            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=100`);
+            const data = await res.json();
+            candleSeries.setData(data.map(d => ({
+                time: d[0] / 1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4])
+            })));
+        }
+
+        // --- BINANCE WS ---
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade/btcusdt@depth5@100ms');
         
+        ws.onopen = () => {
+            document.getElementById('ws-status').innerText = 'WS LIVE';
+            document.getElementById('ws-status').className = 'text-[8px] bg-green-500/20 text-green-500 px-1 rounded';
+        };
+
         ws.onmessage = (e) => {
             const data = JSON.parse(e.data);
             if (data.e === 'trade') {
                 lastBtcPrice = parseFloat(data.p);
                 document.getElementById('main-price').innerText = lastBtcPrice.toLocaleString();
+                updateStrikeDiff();
                 updateSalesFeed(data.p, data.q, data.m);
             } else if (data.asks) {
                 renderOrderBook(data.asks, data.bids);
             }
         };
 
-        function updateSalesFeed(price, qty, isMaker) {
-            const feed = document.getElementById('sales-feed');
-            const row = document.createElement('div');
-            row.className = `trade-row ${!isMaker ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
-            row.innerHTML = `<span>${new Date().toLocaleTimeString('en-GB')}</span><span>${parseFloat(price).toFixed(1)}</span><span class="text-right">${parseFloat(qty).toFixed(4)}</span>`;
-            feed.prepend(row);
-            if (feed.children.length > 30) feed.lastChild.remove();
+        function updateStrikeDiff() {
+            const diff = lastBtcPrice - STRIKE_PRICE;
+            const el = document.getElementById('price-vs-strike');
+            el.innerText = `${diff > 0 ? '+' : ''}${diff.toFixed(2)} vs strike`;
+            el.className = `text-[9px] mt-1 ${diff > 0 ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
         }
 
-        function renderOrderBook(asks, bids) {
-            document.getElementById('asks').innerHTML = asks.map(a => `<div class="flex justify-between"><span>${parseFloat(a[0]).toFixed(1)}</span><span>${parseFloat(a[1]).toFixed(3)}</span></div>`).join('');
-            document.getElementById('bids').innerHTML = bids.map(b => `<div class="flex justify-between"><span>${parseFloat(b[0]).toFixed(1)}</span><span>${parseFloat(b[1]).toFixed(3)}</span></div>`).join('');
-            document.getElementById('spread').innerText = `Spread: ${(asks[0][0] - bids[0][0]).toFixed(2)}`;
+        function updateSalesFeed(p, q, m) {
+            const feed = document.getElementById('sales-feed');
+            const row = document.createElement('div');
+            row.className = `trade-row ${!m ? 'text-[#00ffad]' : 'text-[#ff3b69]'}`;
+            row.innerHTML = `<span>${new Date().toLocaleTimeString()}</span><span>${parseFloat(p).toFixed(1)}</span><span class="text-right">${parseFloat(q).toFixed(3)}</span>`;
+            feed.prepend(row);
+            if(feed.children.length > 30) feed.lastChild.remove();
+        }
+
+        function renderOrderBook(a, b) {
+            document.getElementById('asks').innerHTML = a.map(x => `<div class="flex justify-between"><span>${parseFloat(x[0]).toFixed(1)}</span><span>${parseFloat(x[1]).toFixed(3)}</span></div>`).join('');
+            document.getElementById('bids').innerHTML = b.map(x => `<div class="flex justify-between"><span>${parseFloat(x[0]).toFixed(1)}</span><span>${parseFloat(x[1]).toFixed(3)}</span></div>`).join('');
+            document.getElementById('spread').innerText = `Spread: ${(a[0][0]-b[0][0]).toFixed(2)}`;
         }
 
         // --- POLYMARKET REAL DATA ---
         async function fetchPolymarket() {
             try {
-                const url = `https://clob.polymarket.com/midpoint?token_id=${POLY_TOKEN_ID}`;
-                const res = await fetch(PROXY + encodeURIComponent(url));
+                const target = `https://clob.polymarket.com/midpoint?token_id=${POLY_TOKEN_ID}`;
+                const res = await fetch(PROXY_URL + encodeURIComponent(target));
                 const data = await res.json();
                 
                 if (data.midpoint) {
@@ -155,44 +184,29 @@
                     const cents = (price * 100).toFixed(1);
                     document.getElementById('poly-price-display').innerText = `${cents}¢`;
                     document.getElementById('poly-progress').style.width = `${cents}%`;
-                    
                     calculateEdge(price);
                 }
-            } catch (err) { console.error("Poly API Error", err); }
+            } catch (err) { console.error("Poly Fetch Err:", err); }
         }
 
         function calculateEdge(polyPrice) {
-            // Упрощенная логика Edge: если цена BTC растет, а Poly Midpoint < 0.70 — это потенциальный Edge
-            // Здесь можно добавить свою формулу на основе страйка
-            const edgeVal = (Math.random() * 15).toFixed(1); // Пока симуляция логики
-            const edgeEl = document.getElementById('edge-value');
-            const alertEl = document.getElementById('signal-alert');
-
-            if (polyPrice < 0.85) {
-                edgeEl.innerText = `+${edgeVal}% ADVANTAGE`;
-                edgeEl.className = "text-[#00ffad] font-bold";
-                alertEl.classList.remove('hidden');
-                document.getElementById('sentiment').innerText = "STRONG BUY (EDGE)";
+            const edgeVal = document.getElementById('edge-value');
+            const alert = document.getElementById('signal-alert');
+            
+            // Если BTC выше страйка, а цена YES меньше 80 центов — это сильный сигнал
+            if (lastBtcPrice > STRIKE_PRICE && polyPrice < 0.80) {
+                const edge = ((0.90 - polyPrice) * 100).toFixed(1);
+                edgeVal.innerText = `+${edge}% EDGE`;
+                edgeVal.className = "text-[#00ffad] font-bold";
+                alert.classList.remove('hidden');
             } else {
-                edgeEl.innerText = "NEUTRAL";
-                edgeEl.className = "text-gray-500";
-                alertEl.classList.add('hidden');
-                document.getElementById('sentiment').innerText = "CONSOLIDATION";
+                edgeVal.innerText = "NEUTRAL";
+                edgeVal.className = "text-gray-500";
+                alert.classList.add('hidden');
             }
         }
 
-        // --- INITIAL DATA & TIMERS ---
-        async function initHistory() {
-            const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=100`);
-            const candles = await res.json();
-            candleSeries.setData(candles.map(d => ({
-                time: d[0] / 1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4])
-            })));
-        }
-
-        initHistory();
-        setInterval(fetchPolymarket, 5000); // Обновление Poly раз в 5 сек
-        
+        // --- TIMERS ---
         let seconds = 480;
         setInterval(() => {
             seconds--;
@@ -201,6 +215,10 @@
             const s = seconds%60;
             document.getElementById('clock').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
         }, 1000);
+
+        initChart();
+        setInterval(fetchPolymarket, 5000);
+        fetchPolymarket();
 
         window.onresize = () => chart.resize(document.getElementById('chart-container').offsetWidth, document.getElementById('chart-container').offsetHeight);
     </script>
