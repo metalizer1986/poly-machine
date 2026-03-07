@@ -2,35 +2,35 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>STRIKE TERMINAL v3</title>
+    <title>TERMINAL v4 | ANTI-BLOCK</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-[#05070a] text-gray-400 font-mono text-[11px] overflow-hidden h-screen p-2">
+<body class="bg-[#05070a] text-gray-400 font-mono text-[11px] h-screen overflow-hidden p-2">
     <div class="grid grid-cols-[250px_1fr_300px] gap-2 h-full">
-        <div class="bg-[#0b0e14] border border-gray-800 rounded p-2 flex flex-col">
-            <div class="text-blue-500 font-bold mb-2 uppercase">Order Book</div>
-            <div id="ob-data" class="flex-1 overflow-hidden space-y-1"></div>
+        
+        <div class="bg-[#0b0e14] border border-gray-800 rounded p-2">
+            <div class="text-blue-500 font-bold mb-2 uppercase tracking-tighter">Order Book</div>
+            <div id="ob-data" class="space-y-1"></div>
         </div>
 
         <div class="bg-[#0b0e14] border border-gray-800 rounded relative">
-            <div class="absolute top-4 left-4 z-50 bg-black/70 p-3 rounded border border-gray-700 backdrop-blur-sm">
-                <div class="text-[10px] text-gray-500">BTC PRICE</div>
+            <div class="absolute top-4 left-4 z-50 bg-black/80 p-3 rounded border border-gray-700 backdrop-blur-md">
                 <div id="cur-price" class="text-3xl font-bold text-white tracking-tighter">0.00</div>
-                <div id="cur-diff" class="text-[10px] font-bold">Waiting strike...</div>
+                <div id="cur-diff" class="text-[10px] font-bold">Waiting...</div>
             </div>
             <div id="chart-box" class="w-full h-full"></div>
         </div>
 
         <div class="flex flex-col gap-2">
             <div class="bg-[#0b0e14] border border-blue-900/40 rounded p-5 text-center">
-                <div class="text-xs text-gray-500 uppercase">Polymarket YES Contract</div>
-                <div id="poly-price" class="text-6xl font-black text-white py-2">--¢</div>
-                <div id="p-status" class="text-[8px] font-bold text-red-500">INITIATING...</div>
+                <div class="text-xs text-gray-500 uppercase mb-2">Polymarket Price</div>
+                <div id="poly-price" class="text-6xl font-black text-white leading-none">--¢</div>
+                <div id="p-status" class="text-[8px] mt-4 font-bold text-yellow-600 uppercase">Route: Searching...</div>
             </div>
-            <div class="bg-[#0b0e14] border border-gray-800 rounded flex-1 flex flex-col items-center justify-center p-4">
-                <div id="t-timer" class="text-7xl font-bold text-white mb-4">05:30</div>
-                <div id="t-signal" class="w-full py-4 rounded border border-gray-800 text-center font-bold text-gray-600">SCANNING...</div>
+            <div class="bg-[#0b0e14] border border-gray-800 rounded flex-1 flex flex-col items-center justify-center">
+                <div id="t-timer" class="text-7xl font-bold text-white">05:30</div>
+                <div id="t-signal" class="mt-4 px-6 py-2 rounded-full border border-gray-800 text-gray-600 font-bold">SCANNING EDGE</div>
             </div>
         </div>
     </div>
@@ -40,8 +40,15 @@
             const STRIKE = 67600;
             const TOKEN = "67404634114493846562791118559100324093748944985408299978272941795392737044375";
             let lastBTC = 0;
+            
+            // Список прокси для обхода блокировок VPN
+            const PROXIES = [
+                "https://api.allorigins.win/raw?url=",
+                "https://corsproxy.io/?",
+                "https://groqproxy.popkosasha86.workers.dev/?url="
+            ];
+            let proxyIdx = 0;
 
-            // Chart Setup
             const chart = LightweightCharts.createChart(document.getElementById('chart-box'), {
                 layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
                 grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
@@ -50,7 +57,6 @@
             const s = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
             s.createPriceLine({ price: STRIKE, color: '#ff3b69', lineWidth: 1, lineStyle: 2, title: 'STRIKE' });
 
-            // Binance WebSocket
             const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
             ws.onmessage = e => {
                 const d = JSON.parse(e.data);
@@ -58,44 +64,43 @@
                 document.getElementById('cur-price').innerText = lastBTC.toLocaleString();
                 const diff = lastBTC - STRIKE;
                 const el = document.getElementById('cur-diff');
-                el.innerText = (diff > 0 ? '+' : '') + diff.toFixed(2) + " to strike";
+                el.innerText = (diff > 0 ? '+' : '') + diff.toFixed(2);
                 el.className = `text-[10px] font-bold ${diff > 0 ? 'text-green-500' : 'text-red-500'}`;
             };
 
-            // Poly Logic with Error Handling
             async function getPoly() {
-                const target = `https://clob.polymarket.com/midpoint?token_id=${TOKEN}`;
-                // Пытаемся использовать corsproxy.io как альтернативу, если AllOrigins под VPN тупит
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}&_=${Date.now()}`;
+                const target = encodeURIComponent(`https://clob.polymarket.com/midpoint?token_id=${TOKEN}`);
+                const currentProxy = PROXIES[proxyIdx];
                 
                 try {
-                    const r = await fetch(proxyUrl);
-                    if (!r.ok) throw 'error';
+                    const r = await fetch(`${currentProxy}${target}&_=${Date.now()}`);
+                    if (!r.ok) throw 'fail';
                     const data = await r.json();
                     if (data && data.midpoint) {
                         const val = (parseFloat(data.midpoint) * 100).toFixed(1);
                         document.getElementById('poly-price').innerText = val + '¢';
-                        document.getElementById('p-status').innerText = 'STABLE CONNECTION';
-                        document.getElementById('p-status').className = 'text-[8px] font-bold text-green-500';
+                        document.getElementById('p-status').innerText = `CONNECTED via ROUTE ${proxyIdx + 1}`;
+                        document.getElementById('p-status').className = 'text-[8px] mt-4 font-bold text-green-500 uppercase';
                         
                         const sig = document.getElementById('t-signal');
-                        if (lastBTC > STRIKE + 5 && val < 70) {
-                            sig.innerText = 'BULLISH EDGE: BUY YES';
-                            sig.className = 'w-full py-4 rounded border border-green-500 bg-green-500/10 text-center font-bold text-green-500 animate-pulse';
+                        if (lastBTC > STRIKE + 5 && val < 75) {
+                            sig.innerText = 'BULLISH EDGE: YES';
+                            sig.className = 'mt-4 px-6 py-2 rounded-full border border-green-500 bg-green-500/10 text-green-500 font-bold animate-pulse';
                         } else {
-                            sig.innerText = 'NO CLEAR EDGE';
-                            sig.className = 'w-full py-4 rounded border border-gray-800 text-center font-bold text-gray-600';
+                            sig.innerText = 'STABLE';
+                            sig.className = 'mt-4 px-6 py-2 rounded-full border border-gray-800 text-gray-600 font-bold';
                         }
                     }
                 } catch(e) {
-                    document.getElementById('p-status').innerText = 'VPN/PROXY BLOCK - RETRYING...';
+                    proxyIdx = (proxyIdx + 1) % PROXIES.length; // Переключаем прокси при ошибке
+                    document.getElementById('p-status').innerText = 'SWITCHING ROUTE...';
                 }
             }
 
-            setInterval(getPoly, 5000);
+            setInterval(getPoly, 4000);
             getPoly();
 
-            let time = 338; // 5:38
+            let time = 338; 
             setInterval(() => {
                 time--; if(time<0) time=600;
                 const min = Math.floor(time/60); const sec = time%60;
