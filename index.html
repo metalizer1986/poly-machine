@@ -2,107 +2,122 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL ALPHA V5 | ANTI-ERROR EDITION</title>
+    <title>TERMINAL ALPHA V6 | STRIKE FIX</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #05070a; --panel: #0b0e14; --border: #1d2127; --up: #00ffad; --down: #ff3b69; }
+        :root { --bg: #020408; --panel: #0a0d14; --border: #1e222d; --up: #00ffad; --down: #ff3b69; }
         body { background: var(--bg); color: #e1e4e8; font-family: 'JetBrains Mono', monospace; margin: 0; overflow: hidden; }
-        .glass-panel { background: var(--panel); border: 1px solid var(--border); }
-        .signal-up { box-shadow: inset 0 0 40px rgba(0, 255, 173, 0.15); border-color: var(--up) !important; }
-        .signal-down { box-shadow: inset 0 0 40px rgba(255, 59, 105, 0.15); border-color: var(--down) !important; }
-        .data-error { border-color: #f59e0b !important; opacity: 0.7; }
+        .glass-panel { background: var(--panel); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .neon-text-up { color: var(--up); text-shadow: 0 0 10px rgba(0, 255, 173, 0.5); }
+        .neon-text-down { color: var(--down); text-shadow: 0 0 10px rgba(255, 59, 105, 0.5); }
+        .status-pill { padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 800; text-transform: uppercase; }
     </style>
 </head>
-<body class="p-3 h-screen grid grid-cols-[280px_1fr_350px] gap-3">
+<body class="p-4 h-screen grid grid-cols-[300px_1fr_380px] gap-4">
 
-    <aside class="glass-panel rounded-xl flex flex-col overflow-hidden">
-        <div class="p-3 border-b border-gray-800/50 bg-black/20 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Binance Live Tape</div>
-        <div id="tape" class="flex-1 overflow-y-auto p-3 space-y-1 text-[11px]"></div>
+    <aside class="glass-panel rounded-2xl flex flex-col overflow-hidden border-gray-800/40">
+        <div class="p-4 border-b border-gray-800/50 bg-black/40 flex justify-between items-center">
+            <span class="text-[10px] font-bold text-gray-500 tracking-[0.2em]">BINANCE REALTIME</span>
+            <div id="ws-status" class="status-pill bg-green-500/10 text-green-500">Live</div>
+        </div>
+        <div id="tape" class="flex-1 overflow-y-auto p-4 space-y-2 text-[12px] scrollbar-hide"></div>
     </aside>
 
-    <main class="flex flex-col gap-3">
-        <div class="grid grid-cols-2 gap-3">
-            <div class="glass-panel rounded-xl p-4 relative overflow-hidden">
-                <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">BTC/USDT Spot</div>
-                <div id="price" class="text-3xl font-black tracking-tighter">0.00</div>
-                <div id="diff" class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold">WAITING...</div>
+    <main class="flex flex-col gap-4">
+        <div class="grid grid-cols-2 gap-4">
+            <div class="glass-panel rounded-2xl p-6 relative overflow-hidden">
+                <div class="text-[10px] text-gray-500 font-bold uppercase mb-2 tracking-widest">BTC Price (Spot)</div>
+                <div id="price" class="text-5xl font-black tracking-tighter tabular-nums">0.00</div>
+                <div id="diff-box" class="mt-4 flex items-center gap-2">
+                    <span id="diff-label" class="text-[10px] text-gray-500 font-bold uppercase">vs Strike:</span>
+                    <span id="diff" class="font-bold text-sm tracking-tight">---</span>
+                </div>
             </div>
-            <div class="glass-panel rounded-xl p-4">
-                <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Predict.fun Midpoint</div>
-                <div id="pred-val" class="text-3xl font-black tracking-tighter">--%</div>
-                <div class="w-full h-1 bg-gray-900 mt-3 rounded-full overflow-hidden">
-                    <div id="pred-bar" class="h-full bg-blue-500 transition-all duration-700" style="width: 50%"></div>
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="text-[10px] text-gray-500 font-bold uppercase mb-2 tracking-widest">Predict.fun Midpoint</div>
+                <div id="pred-val" class="text-5xl font-black tracking-tighter tabular-nums">--%</div>
+                <div class="w-full h-1.5 bg-gray-900 mt-6 rounded-full overflow-hidden border border-gray-800">
+                    <div id="pred-bar" class="h-full bg-blue-500 shadow-[0_0_15px_#3b82f6] transition-all duration-1000" style="width: 50%"></div>
                 </div>
             </div>
         </div>
         
-        <div class="glass-panel rounded-xl flex-1 relative overflow-hidden" id="chart-container">
+        <div class="glass-panel rounded-2xl flex-1 relative overflow-hidden border-gray-800/30" id="chart-container">
             <div id="chart" class="absolute inset-0"></div>
+            <div id="strike-display" class="absolute top-4 left-4 z-50 bg-black/60 border border-red-500/30 p-2 rounded hidden">
+                <div class="text-[9px] text-gray-500 font-bold uppercase">Price to Beat</div>
+                <div id="strike-val" class="text-lg font-black text-red-500">---</div>
+            </div>
         </div>
     </main>
 
-    <aside class="flex flex-col gap-3">
-        <div id="signal-card" class="glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 border-transparent">
-            <div class="flex justify-between items-center mb-10">
-                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Alpha Logic V5</span>
-                <div id="data-status" class="h-2 w-2 rounded-full bg-green-500"></div>
-            </div>
-            
-            <div id="signal-content" class="flex-1 flex flex-col justify-center items-center text-center">
-                <div class="text-gray-700 font-bold uppercase animate-pulse">Анализ рынка...</div>
+    <aside class="flex flex-col gap-4">
+        <div id="signal-card" class="glass-panel rounded-3xl flex-1 flex flex-col p-8 transition-all duration-500 border-2 border-transparent relative">
+            <div class="flex justify-between items-center mb-12">
+                <span class="text-[11px] font-black text-gray-500 uppercase tracking-[0.3em]">Decision Engine</span>
+                <div id="api-status" class="status-pill bg-yellow-500/10 text-yellow-500">Syncing</div>
             </div>
 
-            <div class="mt-auto pt-6 border-t border-gray-800">
+            <div id="signal-content" class="flex-1 flex flex-col justify-center items-center text-center">
+                <div class="text-gray-800 font-black text-2xl uppercase tracking-tighter italic">Initializing...</div>
+            </div>
+
+            <div class="mt-auto border-t border-gray-800/50 pt-8">
                 <div class="flex justify-between items-end">
-                    <div class="text-[10px] text-gray-500 uppercase">Expiry In</div>
-                    <div id="timer" class="text-5xl font-black tracking-tighter italic">00:00</div>
+                    <div>
+                        <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Time to Expiry</div>
+                        <div id="timer" class="text-6xl font-black tracking-tighter italic tabular-nums">00:00</div>
+                    </div>
                 </div>
             </div>
         </div>
     </aside>
 
     <script>
+        // Идентификатор берем из текущего окна
         const MARKET_ID = "btc-usd-up-down-2026-03-09-02-15";
         let STRIKE = 0;
         let lastBTC = 0;
-        const alertSnd = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
-        // ИНИЦИАЛИЗАЦИЯ ГРАФИКА
-        const chartContainer = document.getElementById('chart-container');
+        // ГРАФИК
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-            layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
-            grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
+            layout: { background: { color: '#0a0d14' }, textColor: '#4a5568' },
+            grid: { vertLines: { color: '#1a202c' }, horzLines: { color: '#1a202c' } },
             timeScale: { timeVisible: true, borderVisible: false },
-            rightPriceScale: { borderVisible: false, autoScale: true }
+            rightPriceScale: { borderVisible: false, autoScale: true, scaleMargins: { top: 0.1, bottom: 0.1 } }
         });
-        const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
+        const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false, wickUpColor: '#00ffad', wickDownColor: '#ff3b69' });
         let strikeLine = null;
 
-        // ПРОВЕРКА ДАННЫХ И СТРАЙКА
-        async function syncMarket() {
+        // ОБНОВЛЕНИЕ ДАННЫХ PREDICT.FUN
+        async function fetchPredict() {
             try {
-                const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/'+MARKET_ID)}&_=${Date.now()}`;
+                // Добавляем timestamp чтобы обходить кэш прокси
+                const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/'+MARKET_ID)}&t=${Date.now()}`;
                 const r = await fetch(proxy);
-                const data = await r.json();
+                const d = await r.json();
+
+                const newStrike = parseFloat(d.strike_price || d.line || d.price_to_beat);
                 
-                const newStrike = parseFloat(data.strike_price || data.line);
-                
-                // ЗАЩИТА ОТ ОШИБОК: Если страйк слишком низкий или нулевой — игнорируем его
-                if (newStrike > 10000) {
+                if (newStrike > 30000) {
                     STRIKE = newStrike;
+                    document.getElementById('strike-display').classList.remove('hidden');
+                    document.getElementById('strike-val').innerText = STRIKE;
+                    document.getElementById('api-status').className = "status-pill bg-green-500/10 text-green-500";
+                    document.getElementById('api-status').innerText = "Active";
+                    
                     if (strikeLine) series.removePriceLine(strikeLine);
                     strikeLine = series.createPriceLine({
-                        price: STRIKE, color: '#ff3b69', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: `STRIKE: ${STRIKE}`
+                        price: STRIKE, color: '#ff3b69', lineWidth: 3, lineStyle: 0, axisLabelVisible: true, title: `TARGET`
                     });
-                    document.getElementById('data-status').className = "h-2 w-2 rounded-full bg-green-500";
-                } else {
-                    document.getElementById('data-status').className = "h-2 w-2 rounded-full bg-yellow-500 animate-pulse";
                 }
-
-                updateLogic(Math.round(data.up_price || 50));
-            } catch(e) { console.log("API Sync Error"); }
+                updateLogic(Math.round(d.up_price || 50));
+            } catch(e) { 
+                document.getElementById('api-status').className = "status-pill bg-red-500/10 text-red-500";
+                document.getElementById('api-status').innerText = "API Error";
+            }
         }
 
         function updateLogic(prob) {
@@ -113,56 +128,46 @@
             const content = document.getElementById('signal-content');
             const delta = lastBTC - STRIKE;
 
-            // ГЛАВНЫЙ ФИЛЬТР ЛОЖНЫХ СИГНАЛОВ
-            const isDataValid = STRIKE > 10000 && Math.abs(delta) < 1500;
-
-            if (!isDataValid) {
-                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 data-error";
-                content.innerHTML = `<div class="text-yellow-500 font-bold mb-2 uppercase text-[10px]">Data Syncing...</div><div class="text-xl font-bold text-gray-500 tracking-tight">ЖДЕМ ПРАВИЛЬНЫЙ СТРАЙК</div>`;
+            if (STRIKE < 10000) {
+                content.innerHTML = `<div class="text-gray-700 font-bold uppercase">Ожидание Страйка...</div>`;
                 return;
             }
 
-            // Улучшенная логика входа (с учетом твоих скриншотов)
-            if (delta > 35 && prob < 58) {
-                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 signal-up";
-                content.innerHTML = `<div class="text-green-400 font-bold mb-2 tracking-widest uppercase text-[10px]">Edge: Market Underpriced</div><div class="text-4xl font-black">BUY UP</div>`;
-            } else if (delta < -35 && prob > 42) {
-                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 signal-down";
-                content.innerHTML = `<div class="text-red-400 font-bold mb-2 tracking-widest uppercase text-[10px]">Edge: Market Overpriced</div><div class="text-4xl font-black">BUY DOWN</div>`;
+            // Алгоритм принятия решений
+            if (delta > 40 && prob < 55) {
+                card.className = "glass-panel rounded-3xl flex-1 flex flex-col p-8 transition-all border-2 border-green-500 shadow-[0_0_50px_rgba(0,255,173,0.15)]";
+                content.innerHTML = `<div class="neon-text-up text-xs font-black tracking-widest mb-4">▲ OPPORTUNITY</div><div class="text-5xl font-black leading-none">BUY<br>UP</div><div class="mt-8 text-[9px] text-gray-500 font-bold uppercase tracking-widest">Market lags behind BTC move</div>`;
+            } else if (delta < -40 && prob > 45) {
+                card.className = "glass-panel rounded-3xl flex-1 flex flex-col p-8 transition-all border-2 border-red-500 shadow-[0_0_50px_rgba(255,59,105,0.15)]";
+                content.innerHTML = `<div class="neon-text-down text-xs font-black tracking-widest mb-4">▼ OPPORTUNITY</div><div class="text-5xl font-black leading-none">BUY<br>DOWN</div><div class="mt-8 text-[9px] text-gray-500 font-bold uppercase tracking-widest">Price is overpriced vs Spot</div>`;
             } else {
-                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 border-transparent";
-                content.innerHTML = `<div class="text-gray-700 font-bold uppercase tracking-widest text-[12px]">Scanning...</div>`;
+                card.className = "glass-panel rounded-3xl flex-1 flex flex-col p-8 transition-all border-2 border-transparent";
+                content.innerHTML = `<div class="text-gray-800 font-black text-xl uppercase tracking-widest">Scanning...</div><div class="text-[10px] text-gray-600 mt-2 font-bold uppercase">No clear edge yet</div>`;
             }
         }
 
-        // BINANCE LIVE FEED
+        // BINANCE WEBSOCKET
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
         ws.onmessage = e => {
             const d = JSON.parse(e.data);
             lastBTC = parseFloat(d.p);
-            document.getElementById('price').innerText = lastBTC.toLocaleString();
+            document.getElementById('price').innerText = lastBTC.toLocaleString('en-US', {minimumFractionDigits: 2});
             
             if (STRIKE > 0) {
                 const diff = lastBTC - STRIKE;
                 const diffEl = document.getElementById('diff');
-                // Если разница аномальная — не выводим её, чтобы не пугаться
-                if (Math.abs(diff) < 2000) {
-                    diffEl.innerText = `${diff > 0 ? '▲ +' : '▼ '}${Math.abs(diff).toFixed(2)}`;
-                    diffEl.className = `inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold ${diff > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`;
-                } else {
-                    diffEl.innerText = "CALIBRATING...";
-                    diffEl.className = "inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-800 text-gray-400";
-                }
+                diffEl.innerText = `${diff > 0 ? '▲ +' : '▼ '}${Math.abs(diff).toFixed(2)}`;
+                diffEl.className = `font-bold text-sm ${diff > 0 ? 'text-green-400' : 'text-red-400'}`;
             }
 
             series.update({ time: Math.floor(d.E / 60000) * 60, close: lastBTC });
             
             const tape = document.getElementById('tape');
-            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between border-b border-gray-900/30 py-1 ${lastBTC > STRIKE ? 'text-green-400' : 'text-red-400'}"><span>${new Date().toLocaleTimeString()}</span><span>${lastBTC.toFixed(1)}</span></div>`);
-            if(tape.children.length > 25) tape.lastChild.remove();
+            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between items-center py-1 border-b border-gray-800/20"><span class="text-[9px] text-gray-600">${new Date().toLocaleTimeString()}</span><span class="font-bold ${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'}">${lastBTC.toFixed(1)}</span></div>`);
+            if(tape.children.length > 30) tape.lastChild.remove();
         };
 
-        // ТАЙМЕР
+        // ТАЙМЕР И ИНИЦИАЛИЗАЦИЯ
         function updateTimer() {
             const now = new Date();
             const m = now.getMinutes(); const s = now.getSeconds();
@@ -170,23 +175,21 @@
             document.getElementById('timer').innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
         }
 
-        // ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ ГРАФИКА
-        async function refreshChart() {
+        async function init() {
             const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
             const data = await r.json();
             series.setData(data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) })));
             chart.timeScale().fitContent();
         }
 
-        refreshChart();
-        setInterval(refreshChart, 60000);
+        init();
         setInterval(updateTimer, 1000);
-        setInterval(syncMarket, 5000);
-        syncMarket();
+        setInterval(fetchPredict, 4000); // Опрашиваем чаще
+        fetchPredict();
 
         new ResizeObserver(() => {
             chart.applyOptions({ width: chartContainer.clientWidth, height: chartContainer.clientHeight });
-        }).observe(chartContainer);
+        }).observe(document.getElementById('chart-container'));
     </script>
 </body>
 </html>
