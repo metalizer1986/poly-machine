@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL ALPHA V3 | LIVE CHART</title>
+    <title>TERMINAL ALPHA V4 | AUTO-REFRESH</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
@@ -26,26 +26,28 @@
             <div class="glass-panel rounded-xl p-4">
                 <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">BTC/USDT Spot</div>
                 <div id="price" class="text-3xl font-black tracking-tighter">0.00</div>
-                <div id="diff" class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold">WAITING...</div>
+                <div id="diff" class="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold">SYNC...</div>
             </div>
             <div class="glass-panel rounded-xl p-4">
-                <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Predict.fun Midpoint</div>
+                <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Predict.fun %</div>
                 <div id="pred-val" class="text-3xl font-black tracking-tighter">--%</div>
-                <div class="w-full h-1 bg-gray-900 mt-3 rounded-full overflow-hidden">
+                <div class="w-full h-1 bg-gray-900 mt-3 rounded-full overflow-hidden border border-gray-800">
                     <div id="pred-bar" class="h-full bg-blue-500 transition-all duration-700" style="width: 50%"></div>
                 </div>
             </div>
         </div>
+        
         <div class="glass-panel rounded-xl flex-1 relative overflow-hidden" id="chart-container">
             <div id="chart" class="absolute inset-0"></div>
+            <div class="absolute top-2 right-2 z-50 text-[8px] text-gray-600 bg-black/50 px-2 py-1 rounded">AUTO-REFRESH: 60s</div>
         </div>
     </main>
 
     <aside class="flex flex-col gap-3">
         <div id="signal-card" class="glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 border-transparent">
-            <div class="text-[10px] font-bold text-gray-500 uppercase mb-10 tracking-widest">Decision Engine</div>
+            <div class="text-[10px] font-bold text-gray-500 uppercase mb-10 tracking-widest">Alpha Logic</div>
             <div id="signal-content" class="flex-1 flex flex-col justify-center items-center text-center">
-                <div class="text-gray-700 font-bold uppercase">Анализ потока...</div>
+                <div class="text-gray-700 font-bold uppercase animate-pulse">Scanning Market...</div>
             </div>
             <div class="mt-auto pt-6 border-t border-gray-800">
                 <div class="flex justify-between items-end">
@@ -62,93 +64,84 @@
         let lastBTC = 0;
         const alertSnd = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
-        // ИНИЦИАЛИЗАЦИЯ ГРАФИКА
-        const chartContainer = document.getElementById('chart-container');
+        // ГРАФИК
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
             grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
-            timeScale: { timeVisible: true, secondsVisible: false },
-            rightPriceScale: { autoScale: true, borderVisible: false }
+            timeScale: { timeVisible: true, borderVisible: false },
+            rightPriceScale: { borderVisible: false, autoScale: true }
         });
-
         const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
-        
-        // Авто-ресайз графика
-        const resizeObserver = new ResizeObserver(entries => {
-            if (entries.length === 0 || !entries[0].contentRect) return;
-            chart.applyOptions({ width: entries[0].contentRect.width, height: entries[0].contentRect.height });
-        });
-        resizeObserver.observe(chartContainer);
-
-        // ФУНКЦИЯ ОБНОВЛЕНИЯ СТРАЙКА
         let strikeLine = null;
-        function setStrike(price) {
-            if (strikeLine) series.removePriceLine(strikeLine);
-            strikeLine = series.createPriceLine({
-                price: price, color: '#ff3b69', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: `STRIKE: ${price}`
-            });
+
+        // --- ГЛАВНАЯ ФУНКЦИЯ ОБНОВЛЕНИЯ ГРАФИКА ---
+        async function refreshChart() {
+            try {
+                const response = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
+                const data = await response.json();
+                const candles = data.map(d => ({
+                    time: d[0] / 1000,
+                    open: parseFloat(d[1]), high: parseFloat(d[2]),
+                    low: parseFloat(d[3]), close: parseFloat(d[4])
+                }));
+                series.setData(candles); // Полная перезапись данных
+                chart.timeScale().fitContent(); // Подгонка масштаба
+                console.log("График обновлен автоматически");
+            } catch (e) { console.error("Ошибка обновления графика"); }
         }
 
-        // BINANCE WEBSOCKET (LIVE DATA)
+        // ВОРКЕР ЦЕНЫ (BINANCE)
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
         ws.onmessage = e => {
             const d = JSON.parse(e.data);
             lastBTC = parseFloat(d.p);
-            
-            // 1. Обновляем цену в шапке
             document.getElementById('price').innerText = lastBTC.toLocaleString();
             
-            // 2. Обновляем разницу со страйком
             const diff = lastBTC - STRIKE;
             const diffEl = document.getElementById('diff');
             diffEl.innerText = `${diff > 0 ? '▲ +' : '▼ '}${Math.abs(diff).toFixed(2)}`;
             diffEl.className = `inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold ${diff > 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`;
 
-            // 3. ЖИВОЕ ОБНОВЛЕНИЕ ГРАФИКА
-            series.update({
-                time: Math.floor(d.E / 1000), // Секунды для точности
-                close: lastBTC
-            });
+            // Плавное обновление текущей свечи
+            series.update({ time: Math.floor(d.E / 60000) * 60, close: lastBTC });
 
-            // 4. Обновляем ленту
             const tape = document.getElementById('tape');
             tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between border-b border-gray-900/30 py-1 ${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'}"><span>${new Date().toLocaleTimeString()}</span><span>${lastBTC.toFixed(1)}</span></div>`);
-            if(tape.children.length > 25) tape.lastChild.remove();
+            if(tape.children.length > 20) tape.lastChild.remove();
         };
 
-        // ТАЙМЕР И API
+        // ТАЙМЕР И СИНХРОНИЗАЦИЯ СТРАЙКА
         async function sync() {
+            const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/'+MARKET_ID)}&_=${Date.now()}`;
             try {
-                const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/'+MARKET_ID)}&_=${Date.now()}`;
-                const res = await fetch(proxy);
-                const data = await res.json();
-                
+                const r = await fetch(proxy); const data = await r.json();
                 const newStrike = parseFloat(data.strike_price || data.line);
                 if (newStrike > 1000 && newStrike !== STRIKE) {
                     STRIKE = newStrike;
-                    setStrike(STRIKE);
+                    if (strikeLine) series.removePriceLine(strikeLine);
+                    strikeLine = series.createPriceLine({ price: STRIKE, color: '#ff3b69', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: `STRIKE ${STRIKE}` });
                 }
-
-                const prob = Math.round(data.up_price || 50);
-                document.getElementById('pred-val').innerText = prob + '%';
-                document.getElementById('pred-bar').style.width = prob + '%';
-
-                // Логика сигналов
-                const card = document.getElementById('signal-card');
-                const content = document.getElementById('signal-content');
-                const delta = lastBTC - STRIKE;
-
-                if (delta > 30 && prob < 60) {
-                    card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 signal-up";
-                    content.innerHTML = `<div class="text-green-400 text-xs font-bold mb-2 tracking-widest">▲ СИГНАЛ</div><div class="text-3xl font-black">BUY UP</div>`;
-                } else if (delta < -30 && prob > 40) {
-                    card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 signal-down";
-                    content.innerHTML = `<div class="text-red-400 text-xs font-bold mb-2 tracking-widest">▼ СИГНАЛ</div><div class="text-3xl font-black">BUY DOWN</div>`;
-                } else {
-                    card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 border-transparent";
-                    content.innerHTML = `<div class="text-gray-600 font-bold uppercase">Ждем момента...</div>`;
-                }
+                updateSignals(Math.round(data.up_price || 50));
             } catch(e) {}
+        }
+
+        function updateSignals(prob) {
+            document.getElementById('pred-val').innerText = prob + '%';
+            document.getElementById('pred-bar').style.width = prob + '%';
+            const card = document.getElementById('signal-card');
+            const content = document.getElementById('signal-content');
+            const delta = lastBTC - STRIKE;
+
+            if (delta > 25 && prob < 62) {
+                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 signal-up";
+                content.innerHTML = `<div class="text-green-400 font-bold mb-2 tracking-widest uppercase text-[10px]">Edge detected</div><div class="text-3xl font-black">BUY UP</div>`;
+            } else if (delta < -25 && prob > 38) {
+                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 signal-down";
+                content.innerHTML = `<div class="text-red-400 font-bold mb-2 tracking-widest uppercase text-[10px]">Edge detected</div><div class="text-3xl font-black">BUY DOWN</div>`;
+            } else {
+                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-6 transition-all border-2 border-transparent";
+                content.innerHTML = `<div class="text-gray-700 font-bold uppercase">Scanning...</div>`;
+            }
         }
 
         function updateTimer() {
@@ -158,24 +151,17 @@
             document.getElementById('timer').innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
         }
 
-        // Загрузка истории свечей (чтобы график не был пустым при старте)
-        fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100')
-            .then(r => r.json()).then(data => {
-                const candles = data.map(d => ({
-                    time: d[0] / 1000,
-                    open: parseFloat(d[1]),
-                    high: parseFloat(d[2]),
-                    low: parseFloat(d[3]),
-                    close: parseFloat(d[4])
-                }));
-                series.setData(candles);
-                chart.timeScale().fitContent();
-                setStrike(STRIKE);
-            });
-
+        // ЗАПУСКИ
+        refreshChart(); // Первый запуск
+        setInterval(refreshChart, 60000); // Рефреш графика каждую минуту
         setInterval(updateTimer, 1000);
         setInterval(sync, 5000);
         sync();
+
+        // Авто-ресайз
+        new ResizeObserver(() => {
+            chart.applyOptions({ width: chartContainer.clientWidth, height: chartContainer.clientHeight });
+        }).observe(document.getElementById('chart-container'));
     </script>
 </body>
 </html>
