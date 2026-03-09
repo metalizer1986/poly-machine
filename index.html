@@ -2,150 +2,121 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL ALPHA V15.3 | VISUAL STRIKE</title>
+    <title>TERMINAL ALPHA V16 | THE FINAL 120</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
     <style>
-        body { background: #010204; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
-        .panel { background: #080a0f; border: 1px solid #1e293b; border-radius: 12px; }
-        .alert-active { border-color: #3b82f6 !important; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); }
-        #tape div { border-bottom: 1px solid rgba(30, 41, 59, 0.3); padding: 4px 0; }
+        body { background: #02040a; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
+        .panel { background: #0b0e14; border: 1px solid #1e293b; border-radius: 12px; transition: all 0.3s; }
+        .final-seconds { background: linear-gradient(45deg, #1e1b4b, #02040a); border-color: #4338ca !important; box-shadow: 0 0 40px rgba(67, 56, 202, 0.3); }
+        .action-blink { animation: action-glow 1s infinite alternate; }
+        @keyframes action-glow { from { opacity: 1; transform: scale(1); } to { opacity: 0.8; transform: scale(0.98); } }
     </style>
 </head>
-<body class="h-screen p-4 grid grid-cols-[260px_1fr_360px] gap-4">
+<body class="h-screen p-4 grid grid-cols-[280px_1fr_400px] gap-4">
 
     <div class="panel p-4 flex flex-col overflow-hidden">
-        <div class="text-[10px] text-blue-500 font-black mb-3 border-b border-slate-800 pb-2">LIVE TICKER</div>
-        <div id="tape" class="flex-1 overflow-y-auto space-y-1 text-[10px] tabular-nums scrollbar-hide"></div>
+        <div class="text-[10px] text-indigo-400 font-black mb-3 border-b border-slate-800 pb-2 uppercase italic">Market Velocity</div>
+        <div id="tape" class="flex-1 overflow-y-auto space-y-1 text-[10px] tabular-nums scrollbar-hide opacity-60"></div>
     </div>
 
     <div class="flex flex-col gap-4">
         <div class="grid grid-cols-4 gap-4">
-            <div class="panel p-4">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">BTC Spot</div>
-                <div id="price" class="text-2xl font-black text-white tabular-nums">0.00</div>
-            </div>
-            <div class="panel p-4 border-r-2 border-red-600/50">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">Strike Price</div>
-                <input id="strike-manual" type="number" step="0.01" class="w-full bg-transparent text-2xl font-black text-red-500 outline-none" placeholder="0.00">
-            </div>
-            <div class="panel p-4">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">RSI (14)</div>
-                <div id="rsi-val" class="text-2xl font-black text-purple-400">--</div>
-            </div>
-            <div class="panel p-4">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">Conf. Score</div>
-                <div id="conf-val" class="text-2xl font-black text-slate-600">0%</div>
-            </div>
+            <div class="panel p-4"><div class="text-[9px] text-slate-500 font-bold uppercase">BTC Spot</div><div id="price" class="text-2xl font-black text-white tabular-nums">0.00</div></div>
+            <div class="panel p-4 border-r-4 border-indigo-600/50"><div class="text-[9px] text-slate-500 font-bold uppercase">Active Strike</div><input id="strike-manual" type="number" step="0.01" class="w-full bg-transparent text-2xl font-black text-indigo-400 outline-none" placeholder="0.00"></div>
+            <div class="panel p-4"><div class="text-[9px] text-slate-500 font-bold uppercase">RSI 14</div><div id="rsi-val" class="text-2xl font-black text-purple-400">--</div></div>
+            <div class="panel p-4"><div class="text-[9px] text-slate-500 font-bold uppercase">Distance</div><div id="dist-val" class="text-2xl font-black text-slate-400">0</div></div>
         </div>
-        <div class="panel flex-1 relative overflow-hidden" id="chart-box">
-            <div id="chart" class="absolute inset-0"></div>
-        </div>
+        <div class="panel flex-1 relative overflow-hidden" id="chart-box"><div id="chart" class="absolute inset-0"></div></div>
     </div>
 
-    <div id="signal-card" class="panel p-6 flex flex-col transition-all duration-300">
-        <div class="flex justify-between items-center mb-6">
-            <span class="text-[10px] font-bold text-slate-600 uppercase italic">V15.3 Visual</span>
-            <div id="timer" class="text-3xl font-black tracking-tighter text-slate-500 italic">00:00</div>
-        </div>
-        <div id="decision" class="flex-1 flex flex-col justify-center items-center text-center">
-            <div class="text-slate-800 font-bold uppercase tracking-[0.2em] animate-pulse">Waiting for Data</div>
-        </div>
-        <div class="mt-auto pt-6 border-t border-slate-800/40 space-y-4">
-            <div class="flex justify-between items-center bg-slate-900/40 p-4 rounded-lg">
-                <div class="flex flex-col">
-                    <span class="text-[9px] text-slate-500 uppercase font-black">ROI Potential</span>
-                    <span id="roi-val" class="text-lg font-black text-green-500">--%</span>
-                </div>
-                <div class="text-right flex flex-col">
-                    <span class="text-[9px] text-slate-500 uppercase font-black">Risk Level</span>
-                    <span id="risk-status" class="text-lg font-black text-blue-500">LOW</span>
-                </div>
+    <div id="final-module" class="panel p-8 flex flex-col relative overflow-hidden">
+        <div class="flex justify-between items-start mb-8">
+            <div class="flex flex-col">
+                <span class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Decision Engine</span>
+                <span class="text-[8px] text-slate-600 uppercase">V16.0 Strategy: End-Game</span>
             </div>
+            <div id="timer" class="text-4xl font-black tracking-tighter text-slate-400 tabular-nums italic">00:00</div>
+        </div>
+
+        <div id="decision-box" class="flex-1 flex flex-col justify-center items-center text-center">
+            <div class="text-slate-800 font-bold uppercase tracking-[0.3em]">Analyzing Cycle...</div>
+        </div>
+
+        <div id="final-alert" class="hidden mt-6 p-4 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-center">
+            <div class="text-[10px] text-indigo-300 font-bold uppercase mb-1">2-Minute Verdict</div>
+            <div id="verdict-text" class="text-xl font-black text-white italic tracking-tight uppercase">Waiting for 2:00 mark</div>
         </div>
     </div>
 
     <script>
-        let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null;
-        let strikeLine = null; // Хранилище для линии на графике
-        const alertSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3');
-        alertSnd.volume = 0.3;
-
+        let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null, strikeLine = null;
+        
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-            layout: { background: { color: '#080a0f' }, textColor: '#64748b' },
-            grid: { vertLines: { color: '#111827' }, horzLines: { color: '#111827' } },
-            timeScale: { timeVisible: true, borderVisible: false },
-            rightPriceScale: { borderVisible: false, autoScale: true }
+            layout: { background: { color: '#0b0e14' }, textColor: '#64748b' },
+            grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
+            rightPriceScale: { borderVisible: false, autoScale: true },
+            timeScale: { borderVisible: false }
         });
-        const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
+        const series = chart.addCandlestickSeries({ upColor: '#10b981', downColor: '#ef4444', borderVisible: false });
 
-        // Функция отрисовки линии страйка
-        function drawStrikeLine(price) {
-            if (strikeLine) {
-                series.removePriceLine(strikeLine);
-            }
-            if (price > 0) {
-                strikeLine = series.createPriceLine({
-                    price: price,
-                    color: '#ff4444',
-                    lineWidth: 3,
-                    lineStyle: LightweightCharts.LineStyle.Solid,
-                    axisLabelVisible: true,
-                    title: 'STRIKE',
-                });
-            }
+        function drawStrike(p) {
+            if (strikeLine) series.removePriceLine(strikeLine);
+            if (p > 0) strikeLine = series.createPriceLine({ price: p, color: '#6366f1', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: 'STRIKE' });
         }
 
-        async function loadHistory() {
-            try {
-                const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
-                const data = await r.json();
-                history = data.map(d => ({
-                    time: d[0] / 1000,
-                    open: parseFloat(d[1]), high: parseFloat(d[2]),
-                    low: parseFloat(d[3]), close: parseFloat(d[4])
-                }));
-                series.setData(history);
-                currentCandle = history[history.length - 1];
-            } catch(e) {}
+        async function loadData() {
+            const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
+            const data = await r.json();
+            history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
+            series.setData(history);
+            currentCandle = history[history.length-1];
         }
 
-        function calculateRSI() {
+        function getRSI() {
             if (history.length < 15) return 50;
             const closes = history.slice(-15).map(c => c.close);
             let up = 0, down = 0;
             for (let i = 1; i < closes.length; i++) {
-                let diff = closes[i] - closes[i-1];
-                if (diff >= 0) up += diff; else down -= diff;
+                let diff = closes[i]-closes[i-1];
+                if(diff >= 0) up += diff; else down -= diff;
             }
             return 100 - (100 / (1 + (up / (down || 1))));
         }
 
-        function updateUI() {
-            const rsi = calculateRSI();
-            document.getElementById('rsi-val').innerText = rsi.toFixed(1);
-            
+        function runFinalLogic(remM, remS) {
             const delta = lastBTC - STRIKE;
-            const now = new Date();
-            const remM = 14 - (now.getMinutes() % 15);
-            
-            let score = 0;
-            if (STRIKE > 0) {
-                if (Math.abs(delta) > 50) score += 40;
-                if (rsi > 70 || rsi < 30) score += 40;
-            }
+            document.getElementById('dist-val').innerText = (delta > 0 ? '+' : '') + Math.round(delta);
+            const rsi = getRSI();
+            document.getElementById('rsi-val').innerText = rsi.toFixed(1);
 
-            document.getElementById('conf-val').innerText = score + "%";
-            const decEl = document.getElementById('decision');
-            const card = document.getElementById('signal-card');
+            const mod = document.getElementById('final-module');
+            const decBox = document.getElementById('decision-box');
+            const alertBox = document.getElementById('final-alert');
+            const verdictTxt = document.getElementById('verdict-text');
 
-            if (score >= 70 && remM >= 3) {
-                if (!card.classList.contains('alert-active')) { alertSnd.play(); card.classList.add('alert-active'); }
-                decEl.innerHTML = `<div class="${delta > 0 ? 'text-red-500' : 'text-green-500'} font-black text-8xl">${delta > 0 ? 'DOWN' : 'UP'}</div>`;
+            // Активация режима "Последние 2 минуты"
+            if (remM === 1 && remS <= 59 || remM === 0) {
+                mod.classList.add('final-seconds');
+                alertBox.classList.remove('hidden');
+                
+                if (Math.abs(delta) < 25) {
+                    verdictTxt.innerText = "SKIP: TOO CLOSE";
+                    decBox.innerHTML = `<div class="text-slate-600 font-bold text-4xl italic">DANGER ZONE</div>`;
+                } else if (delta > 60) {
+                    verdictTxt.innerText = "ENTRY: DOWN ADVISED";
+                    decBox.innerHTML = `<div class="text-red-500 font-black text-8xl action-blink italic">DOWN</div>`;
+                } else if (delta < -60) {
+                    verdictTxt.innerText = "ENTRY: UP ADVISED";
+                    decBox.innerHTML = `<div class="text-green-500 font-black text-8xl action-blink italic">UP</div>`;
+                } else {
+                    verdictTxt.innerText = "WAITING FOR GAP";
+                }
             } else {
-                card.classList.remove('alert-active');
-                decEl.innerHTML = `<div class="text-slate-800 font-bold uppercase tracking-widest text-sm">Monitoring...</div>`;
+                mod.classList.remove('final-seconds');
+                alertBox.classList.add('hidden');
+                decBox.innerHTML = `<div class="text-slate-800 font-bold uppercase tracking-[0.2em]">Analyzing...</div>`;
             }
         }
 
@@ -153,10 +124,9 @@
         ws.onmessage = e => {
             const d = JSON.parse(e.data);
             lastBTC = parseFloat(d.p);
-            const time = Math.floor(d.E / 60000) * 60;
             document.getElementById('price').innerText = lastBTC.toLocaleString();
-
-            if (!currentCandle || time > currentCandle.time) {
+            const time = Math.floor(d.E/60000)*60;
+            if(!currentCandle || time > currentCandle.time) {
                 currentCandle = { time, open: lastBTC, high: lastBTC, low: lastBTC, close: lastBTC };
                 history.push(currentCandle);
             } else {
@@ -165,43 +135,26 @@
                 currentCandle.low = Math.min(currentCandle.low, lastBTC);
             }
             series.update(currentCandle);
-
+            
             const tape = document.getElementById('tape');
-            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between"><span>${new Date().toLocaleTimeString()}</span><span class="${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'} font-bold">${lastBTC.toFixed(1)}</span></div>`);
+            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between border-b border-slate-900 pb-1"><span>${new Date().toLocaleTimeString()}</span><span class="${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'} font-bold">${lastBTC.toFixed(1)}</span></div>`);
             if(tape.children.length > 30) tape.lastChild.remove();
-
-            updateUI();
         };
-
-        const strikeInput = document.getElementById('strike-manual');
-        strikeInput.addEventListener('input', (e) => {
-            STRIKE = parseFloat(e.target.value);
-            drawStrikeLine(STRIKE); // Мгновенная отрисовка при вводе
-        });
-
-        async function syncMarket() {
-            if (document.activeElement === strikeInput) return;
-            try {
-                const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/btc-usd-up-down-2026-03-09-02-15')}&_=${Date.now()}`;
-                const r = await fetch(proxy); const d = await r.json();
-                const s = parseFloat(d.strike_price || d.line || d.price_to_beat);
-                if (s > 1000) { 
-                    STRIKE = s; 
-                    strikeInput.value = STRIKE; 
-                    drawStrikeLine(STRIKE); 
-                }
-            } catch(e) {}
-        }
 
         setInterval(() => {
             const now = new Date();
             const remM = 14 - (now.getMinutes() % 15);
             const remS = 59 - now.getSeconds();
             document.getElementById('timer').innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
+            runFinalLogic(remM, remS);
         }, 1000);
 
-        loadHistory();
-        setInterval(syncMarket, 10000);
+        document.getElementById('strike-manual').addEventListener('input', (e) => {
+            STRIKE = parseFloat(e.target.value);
+            drawStrike(STRIKE);
+        });
+
+        loadData();
         new ResizeObserver(() => chart.applyOptions({ width: document.getElementById('chart-box').clientWidth, height: document.getElementById('chart-box').clientHeight })).observe(document.getElementById('chart-box'));
     </script>
 </body>
