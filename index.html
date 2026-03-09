@@ -2,160 +2,193 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>SMART TERMINAL V2 | FIXED</title>
+    <title>TERMINAL ALPHA | PREDICT.FUN</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        body { background: #020408; color: #e1e4e8; font-family: 'JetBrains Mono', monospace; font-size: 11px; margin: 0; overflow: hidden; }
-        .panel { background: #0b0e14; border: 1px solid #1d2127; border-radius: 4px; }
-        .glow-green { text-shadow: 0 0 20px rgba(0, 255, 173, 0.7); color: #00ffad; }
-        .glow-red { text-shadow: 0 0 20px rgba(255, 59, 105, 0.7); color: #ff3b69; }
+        :root {
+            --bg: #05070a; --panel: #0b0e14; --border: #1d2127;
+            --up: #00ffad; --down: #ff3b69; --accent: #3b82f6;
+        }
+        body { 
+            background: var(--bg); color: #e1e4e8; 
+            font-family: 'JetBrains Mono', monospace; 
+            margin: 0; overflow: hidden; letter-spacing: -0.5px;
+        }
+        .glass-panel { 
+            background: var(--panel); border: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .signal-flash-up { box-shadow: inset 0 0 50px rgba(0, 255, 173, 0.15), 0 0 20px rgba(0, 255, 173, 0.1); border-color: var(--up) !important; }
+        .signal-flash-down { box-shadow: inset 0 0 50px rgba(255, 59, 105, 0.15), 0 0 20px rgba(255, 59, 105, 0.1); border-color: var(--down) !important; }
+        .glow-text-up { text-shadow: 0 0 15px var(--up); color: var(--up); }
+        .glow-text-down { text-shadow: 0 0 15px var(--down); color: var(--down); }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
     </style>
 </head>
-<body class="p-2 h-screen grid grid-cols-[280px_1fr_350px] gap-2 bg-[#05070a] text-white">
+<body class="p-3 h-screen grid grid-cols-[300px_1fr_380px] gap-3">
 
-    <aside class="panel flex flex-col overflow-hidden">
-        <div class="p-2 border-b border-gray-800 text-[9px] font-bold text-blue-400 uppercase text-center">Live Tape (Binance)</div>
-        <div id="tape" class="flex-1 overflow-y-auto p-2 font-bold space-y-1"></div>
+    <aside class="glass-panel rounded-xl flex flex-col overflow-hidden">
+        <div class="p-4 border-b border-gray-800/50 flex justify-between items-center bg-black/20">
+            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Live Binance Tape</span>
+            <div class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></div>
+        </div>
+        <div id="tape" class="flex-1 overflow-y-auto p-4 space-y-2 text-[12px]"></div>
     </aside>
 
-    <main class="panel relative">
-        <div class="absolute top-4 left-4 z-50 bg-black/80 p-4 border border-gray-700 rounded-lg backdrop-blur-md shadow-2xl">
-            <div class="text-[10px] text-gray-500 uppercase font-black mb-1">BTC/USDT Spot</div>
-            <div id="price" class="text-4xl font-black tracking-tighter text-white">0.00</div>
-            <div id="diff" class="text-xs font-bold mt-2 px-2 py-0.5 rounded inline-block">Ожидание страйка...</div>
+    <main class="flex flex-col gap-3">
+        <div class="grid grid-cols-2 gap-3">
+            <div class="glass-panel rounded-xl p-5 flex justify-between items-center relative overflow-hidden">
+                <div class="relative z-10">
+                    <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">BTC / USDT SPOT</div>
+                    <div id="price" class="text-4xl font-black tracking-tighter">0.00</div>
+                </div>
+                <div id="diff-box" class="text-right relative z-10">
+                    <div id="diff" class="text-sm font-bold px-3 py-1 rounded-lg bg-gray-900 border border-gray-800">SYNCING...</div>
+                </div>
+                <div class="absolute right-[-20px] top-[-20px] opacity-5 text-8xl font-black">BTC</div>
+            </div>
+            
+            <div class="glass-panel rounded-xl p-5 flex justify-between items-center">
+                <div>
+                    <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Predict.fun Midpoint</div>
+                    <div id="pred-val" class="text-4xl font-black tracking-tighter">--%</div>
+                </div>
+                <div class="w-24 h-2 bg-gray-900 rounded-full overflow-hidden border border-gray-800">
+                    <div id="pred-bar" class="h-full bg-blue-500 shadow-[0_0_10px_#3b82f6] transition-all duration-700" style="width: 50%"></div>
+                </div>
+            </div>
         </div>
-        <div id="chart" class="w-full h-full"></div>
+
+        <div class="glass-panel rounded-xl flex-1 relative overflow-hidden border-gray-800/50">
+            <div id="chart" class="w-full h-full"></div>
+        </div>
     </main>
 
-    <aside class="flex flex-col gap-2">
-        <div class="panel p-6 bg-gradient-to-b from-blue-900/10 to-transparent">
-            <div class="text-center text-gray-500 uppercase text-[10px] mb-4 font-bold tracking-widest">Прогноз рынка (%)</div>
-            <div class="bg-black/60 border border-gray-800 rounded-xl p-8 text-center shadow-2xl relative">
-                <div id="pred-val" class="text-7xl font-black tracking-tighter text-white">--%</div>
-                <div class="w-full bg-gray-900 h-2 mt-6 rounded-full overflow-hidden">
-                    <div id="pred-bar" class="bg-blue-600 h-full transition-all duration-700" style="width: 50%"></div>
-                </div>
-                <div id="net-status" class="text-[8px] mt-4 text-green-500 font-bold uppercase tracking-widest">Sync: Predict.fun</div>
+    <aside class="flex flex-col gap-3">
+        <div id="signal-card" class="glass-panel rounded-xl flex-1 flex flex-col p-8 transition-all duration-500 border-2 border-transparent">
+            <div class="flex justify-between items-start mb-10">
+                <div class="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">Decision Engine</div>
+                <div id="status-tag" class="px-2 py-0.5 rounded text-[9px] bg-gray-800 font-bold uppercase">Scanning</div>
             </div>
-        </div>
 
-        <div id="signal-container" class="panel flex-1 flex flex-col items-center justify-center p-6 text-center transition-all duration-500">
-            <div class="text-[10px] text-gray-500 uppercase font-bold mb-2">Алгоритм принятия решений</div>
-            <div id="signal-content" class="w-full">
-                <div class="text-gray-600 text-lg font-bold uppercase">Анализ...</div>
+            <div id="signal-content" class="flex-1 flex flex-col justify-center items-center text-center">
+                <div class="text-gray-700 text-sm font-bold tracking-widest uppercase mb-4">Система готова...</div>
+                <div class="w-12 h-12 border-4 border-gray-800 border-t-blue-500 rounded-full animate-spin"></div>
             </div>
-            <div class="mt-8 border-t border-gray-800 pt-4 w-full">
-                <div class="text-[10px] text-gray-500 uppercase mb-1">До экспирации (раунд 15м)</div>
-                <div id="timer" class="text-6xl font-black text-white tracking-tighter italic">00:00</div>
+
+            <div class="mt-auto">
+                <div class="flex justify-between items-end mb-2">
+                    <div class="text-[10px] text-gray-500 font-bold uppercase">Time to Expiry</div>
+                    <div id="timer" class="text-5xl font-black tracking-tighter italic">00:00</div>
+                </div>
+                <div class="w-full h-1 bg-gray-900 rounded-full overflow-hidden">
+                    <div id="timer-progress" class="h-full bg-gray-700 transition-all duration-1000" style="width: 100%"></div>
+                </div>
             </div>
         </div>
     </aside>
 
     <script>
-        // --- КОНСТАНТЫ ---
-        const MARKET_ID = "btc-usd-up-down-2026-03-09-02-15"; 
-        let STRIKE = 67600; // Резервное значение (подхватится из API)
+        // --- CONFIG & STATE ---
+        const MARKET_ID = "btc-usd-up-down-2026-03-09-02-15";
+        let STRIKE = 67600;
         let lastBTC = 0;
-        let lastSignalType = 'NONE';
-        const alertSound = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
+        let lastSignal = 'NONE';
+        const alertSnd = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
 
-        // --- ГРАФИК ---
+        // --- CHART SETUP ---
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             layout: { background: { color: '#0b0e14' }, textColor: '#707a8a' },
             grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
-            timeScale: { borderColor: '#1d2127', timeVisible: true }
+            timeScale: { borderColor: '#1d2127', timeVisible: true, borderVisible: false },
+            rightPriceScale: { borderVisible: false }
         });
-        const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
+        const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false, wickUpColor: '#00ffad', wickDownColor: '#ff3b69' });
         let strikeLine = null;
 
-        // --- ФУНКЦИЯ СИНХРОННОГО ТАЙМЕРА ---
+        // --- CORE LOGIC ---
         function updateTimer() {
             const now = new Date();
-            const minutes = now.getMinutes();
-            const seconds = now.getSeconds();
-            
-            // Находим сколько минут осталось до конца текущего 15-минутного интервала
-            const remainMin = 14 - (minutes % 15);
-            const remainSec = 59 - seconds;
-            
-            document.getElementById('timer').innerText = 
-                `${remainMin}:${remainSec < 10 ? '0' : ''}${remainSec}`;
+            const m = now.getMinutes(); const s = now.getSeconds();
+            const remM = 14 - (m % 15); const remS = 59 - s;
+            document.getElementById('timer').innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
+            document.getElementById('timer-progress').style.width = `${((remM * 60 + remS) / 900) * 100}%`;
         }
 
-        // --- ПОЛУЧЕНИЕ ДАННЫХ И СТРАЙКА ---
-        async function getMarketData() {
-            const url = `https://api.predict.fun/v1/markets/${MARKET_ID}`;
-            const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}&_=${Date.now()}`;
-            
+        async function refreshData() {
             try {
-                const r = await fetch(proxy);
-                const data = await r.json();
+                const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/'+MARKET_ID)}&_=${Date.now()}`;
+                const r = await fetch(proxy); const data = await r.json();
                 
-                // ЗАЩИТА: Обновляем страйк только если пришло реальное число > 1000
                 const newStrike = parseFloat(data.strike_price || data.line);
-                if (newStrike > 1000) {
+                if (newStrike > 1000 && newStrike !== STRIKE) {
                     STRIKE = newStrike;
                     if (strikeLine) series.removePriceLine(strikeLine);
-                    strikeLine = series.createPriceLine({
-                        price: STRIKE, color: '#ff3b69', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: `STRIKE: ${STRIKE}`
-                    });
+                    strikeLine = series.createPriceLine({ price: STRIKE, color: '#ff3b69', lineWidth: 2, lineStyle: 2, axisLabelVisible: true, title: `STRIKE ${STRIKE}` });
                 }
-                
-                updateUI(Math.round(data.up_price || 50));
-            } catch(e) { console.log("Ошибка API, используем кэш"); }
+                processSignal(Math.round(data.up_price || 50));
+            } catch(e) { console.log('API Lag...'); }
         }
 
-        function updateUI(prob) {
+        function processSignal(prob) {
             document.getElementById('pred-val').innerText = prob + '%';
             document.getElementById('pred-bar').style.width = prob + '%';
 
-            if (!STRIKE || !lastBTC) return;
+            const card = document.getElementById('signal-card');
+            const content = document.getElementById('signal-content');
+            const tag = document.getElementById('status-tag');
             const delta = lastBTC - STRIKE;
-            const sigContainer = document.getElementById('signal-container');
-            const sigContent = document.getElementById('signal-content');
-            let currentSignal = 'NONE';
 
-            // ИСПРАВЛЕННАЯ ЛОГИКА (delta не может быть 67000 если страйк верный)
-            if (delta > 20 && prob < 60) {
-                currentSignal = 'UP';
-                sigContent.innerHTML = `<div class="text-green-500 animate-bounce text-xl font-black">▲ ЗАХОДИ В СДЕЛКУ!</div><div class="text-white text-2xl font-black">ОТКРЫВАЙ НА ПОВЫШЕНИЕ</div>`;
-                sigContainer.className = 'panel flex-1 flex flex-col items-center justify-center p-6 text-center border-2 border-green-500 bg-green-500/10';
-            } else if (delta < -20 && prob > 40) {
-                currentSignal = 'DOWN';
-                sigContent.innerHTML = `<div class="text-red-500 animate-bounce text-xl font-black">▼ ЗАХОДИ В СДЕЛКУ!</div><div class="text-white text-2xl font-black">ОТКРЫВАЙ НА ПОНИЖЕНИЕ</div>`;
-                sigContainer.className = 'panel flex-1 flex flex-col items-center justify-center p-6 text-center border-2 border-red-500 bg-red-500/10';
+            let current = 'NONE';
+            if (delta > 25 && prob < 62) current = 'UP';
+            else if (delta < -25 && prob > 38) current = 'DOWN';
+
+            if (current === 'UP') {
+                tag.innerText = "Edge Detected"; tag.className = "px-2 py-0.5 rounded text-[9px] bg-green-500/20 text-green-400 font-bold uppercase";
+                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-8 transition-all duration-500 border-2 signal-flash-up";
+                content.innerHTML = `<div class="glow-text-up text-xs font-black tracking-[0.4em] uppercase mb-4">▲ СИГНАЛ АКТИВЕН</div><div class="text-4xl font-black leading-tight">ПОКУПАЙ<br>UP (ВВЕРХ)</div><div class="mt-6 text-[10px] text-green-500/50 font-bold uppercase tracking-widest">Рынок недооценен</div>`;
+            } else if (current === 'DOWN') {
+                tag.innerText = "Edge Detected"; tag.className = "px-2 py-0.5 rounded text-[9px] bg-red-500/20 text-red-400 font-bold uppercase";
+                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-8 transition-all duration-500 border-2 signal-flash-down";
+                content.innerHTML = `<div class="glow-text-down text-xs font-black tracking-[0.4em] uppercase mb-4">▼ СИГНАЛ АКТИВЕН</div><div class="text-4xl font-black leading-tight">ПОКУПАЙ<br>DOWN (ВНИЗ)</div><div class="mt-6 text-[10px] text-red-500/50 font-bold uppercase tracking-widest">Рынок переоценен</div>`;
             } else {
-                sigContent.innerHTML = `<div class="text-gray-500 text-lg font-bold">Жди момента...</div>`;
-                sigContainer.className = 'panel flex-1 flex flex-col items-center justify-center p-6 text-center border-gray-800';
+                tag.innerText = "Scanning"; tag.className = "px-2 py-0.5 rounded text-[9px] bg-gray-800 font-bold uppercase";
+                card.className = "glass-panel rounded-xl flex-1 flex flex-col p-8 transition-all duration-500 border-2 border-transparent";
+                content.innerHTML = `<div class="text-gray-700 text-sm font-bold tracking-widest uppercase mb-4">Ждем перекоса цен...</div><div class="flex gap-1"><div class="w-1.5 h-1.5 bg-gray-800 animate-bounce"></div><div class="w-1.5 h-1.5 bg-gray-800 animate-bounce" style="animation-delay:0.2s"></div><div class="w-1.5 h-1.5 bg-gray-800 animate-bounce" style="animation-delay:0.4s"></div></div>`;
             }
 
-            if (currentSignal !== 'NONE' && currentSignal !== lastSignalType) alertSound.play().catch(()=>{});
-            lastSignalType = currentSignal;
+            if (current !== 'NONE' && current !== lastSignal) { alertSnd.play().catch(()=>{}); }
+            lastSignal = current;
         }
 
         // --- BINANCE WS ---
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
         ws.onmessage = e => {
-            const d = JSON.parse(e.data);
-            lastBTC = parseFloat(d.p);
-            document.getElementById('price').innerText = lastBTC.toLocaleString();
+            const d = JSON.parse(e.data); lastBTC = parseFloat(d.p);
+            document.getElementById('price').innerText = lastBTC.toLocaleString('en-US', { minimumFractionDigits: 2 });
             
             const diff = lastBTC - STRIKE;
             const diffEl = document.getElementById('diff');
-            diffEl.innerText = `${diff > 0 ? '▲ +' : '▼ '}${diff.toFixed(2)} от страйка`;
-            diffEl.className = `text-xs font-bold mt-2 px-2 py-0.5 rounded ${diff > 0 ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`;
+            diffEl.innerText = `${diff > 0 ? '▲ +' : '▼ '}${Math.abs(diff).toFixed(2)}`;
+            diffEl.className = `text-sm font-black px-3 py-1 rounded-lg border ${diff > 0 ? 'border-green-500/50 text-green-400 bg-green-500/10' : 'border-red-500/50 text-red-400 bg-red-500/10'}`;
 
             series.update({ time: Math.floor(d.E / 60000) * 60, close: lastBTC });
             const tape = document.getElementById('tape');
-            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between py-1 border-b border-gray-900/50 ${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'}"><span>${new Date().toLocaleTimeString()}</span><span>${lastBTC.toFixed(1)}</span></div>`);
-            if(tape.children.length > 20) tape.lastChild.remove();
+            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between items-center py-2 border-b border-gray-800/30 font-bold ${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'}"><span class="text-[10px] opacity-50">${new Date().toLocaleTimeString()}</span><span>${lastBTC.toFixed(2)}</span></div>`);
+            if(tape.children.length > 30) tape.lastChild.remove();
         };
 
-        // Запуски
+        fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100`).then(r => r.json()).then(data => {
+            series.setData(data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) })));
+            chart.timeScale().fitContent();
+        });
+
         setInterval(updateTimer, 1000);
-        setInterval(getMarketData, 5000);
-        getMarketData();
+        setInterval(refreshData, 5000);
+        updateTimer(); refreshData();
     </script>
 </body>
 </html>
