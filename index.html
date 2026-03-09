@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL V17.2 | FULL FIX</title>
+    <title>TERMINAL V17.3 | QUANTUM + RSI + ATR</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -19,31 +19,36 @@
 <body class="h-screen p-3 grid grid-cols-[300px_1fr_320px] gap-3">
 
     <div class="panel p-4 flex flex-col gap-4 overflow-y-auto">
-        <div class="border-b border-slate-800 pb-2 flex justify-between">
-            <span class="text-[10px] font-bold text-blue-500 uppercase italic">V17.2 PRO</span>
-            <span class="text-[10px] text-green-400">WIN RATE: 68%</span>
+        <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
+            <span class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest italic">V17.3 Elite</span>
+            <span class="text-[10px] text-green-400 font-bold">PRO MODE</span>
         </div>
         
         <div class="space-y-4">
             <div class="panel bg-slate-900/50 p-3 border-indigo-500/30">
-                <div class="text-[9px] text-slate-500 uppercase font-black">Strike Distance</div>
+                <div class="text-[9px] text-slate-500 uppercase font-black mb-1">Strike Distance</div>
                 <div id="dist-val" class="text-2xl font-black tabular-nums text-indigo-400">0.00</div>
-                <div id="dist-status" class="text-[8px] font-bold uppercase mt-1 text-slate-500 italic">OFFLINE</div>
+                <div id="dist-status" class="text-[8px] font-bold uppercase mt-1 text-slate-500">Connecting...</div>
             </div>
 
             <div class="stat-card">
-                <div class="text-[9px] text-slate-500 uppercase">EMA 9/21 Status</div>
-                <div id="ema-status" class="text-xs font-bold text-slate-500">CALCULATING...</div>
+                <div class="text-[9px] text-slate-500 uppercase">RSI (14) Momentum</div>
+                <div id="rsi-status" class="text-xs font-bold text-slate-400">--</div>
             </div>
 
             <div class="stat-card">
-                <div class="text-[9px] text-slate-500 uppercase">Candle Pattern</div>
-                <div id="pattern-status" class="text-xs font-bold text-yellow-500 italic italic">SCANNING...</div>
+                <div class="text-[9px] text-slate-500 uppercase">ATR (Volatility)</div>
+                <div id="atr-val" class="text-xs font-bold text-slate-400">0.00</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="text-[9px] text-slate-500 uppercase">EMA 9/21 Trend</div>
+                <div id="ema-status" class="text-xs font-bold text-slate-400">SCANNING...</div>
             </div>
         </div>
 
         <div class="mt-auto panel bg-black/40 p-3 text-[9px] text-slate-400 italic leading-tight" id="reasons">
-            Waiting for confluence...
+            Systems initialized. Waiting for 15m cycle...
         </div>
     </div>
 
@@ -53,9 +58,9 @@
                 <div class="text-[8px] text-slate-500 font-bold uppercase">BTC Spot</div>
                 <div id="price" class="text-xl font-black text-white tabular-nums">0.00</div>
             </div>
-            <div class="panel p-3 border-r-4 border-red-500">
+            <div class="panel p-3 border-r-4 border-indigo-500">
                 <div class="text-[8px] text-slate-500 font-bold uppercase italic">Target Strike</div>
-                <input id="strike-manual" type="number" class="w-full bg-transparent text-xl font-black text-red-500 outline-none text-center" value="0">
+                <input id="strike-manual" type="number" class="w-full bg-transparent text-xl font-black text-indigo-400 outline-none text-center" value="0">
             </div>
             <div class="panel p-3">
                 <div class="text-[8px] text-slate-500 font-bold uppercase">Confidence</div>
@@ -70,15 +75,19 @@
     </div>
 
     <div id="decision-panel" class="panel p-6 flex flex-col items-center justify-between text-center">
-        <div class="w-full text-left uppercase text-[10px] font-black text-slate-700">Final Verdict</div>
+        <div class="w-full text-left uppercase text-[10px] font-black text-slate-700 tracking-tighter">Final Verdict</div>
         
         <div id="main-signal">
             <div id="signal-text" class="text-slate-800 font-black text-7xl italic tracking-tighter">WAIT</div>
-            <div id="signal-sub" class="text-[10px] text-slate-600 mt-4 uppercase font-bold">Analyzing market cycle</div>
+            <div id="signal-sub" class="text-[10px] text-slate-500 mt-4 uppercase font-bold">Monitoring Impulse</div>
         </div>
 
         <div class="w-full space-y-4">
-            <div class="h-1.5 bg-slate-900 rounded-full overflow-hidden">
+            <div class="flex justify-between text-[8px] font-black uppercase text-slate-600">
+                <span>Market Strength</span>
+                <span id="rsi-numeric">RSI: --</span>
+            </div>
+            <div class="h-2 bg-slate-900 rounded-full overflow-hidden">
                 <div id="conf-bar" class="h-full bg-blue-600 transition-all duration-700" style="width: 0%"></div>
             </div>
         </div>
@@ -88,12 +97,12 @@
         let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null, strikeLine = null;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function beep(freq) {
-            const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
-            osc.connect(g); g.connect(audioCtx.destination);
-            osc.frequency.value = freq; g.gain.value = 0.05;
-            osc.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
-            osc.stop(audioCtx.currentTime + 0.5);
+        function beep(f) {
+            const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.frequency.value = f; g.gain.value = 0.05;
+            o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+            o.stop(audioCtx.currentTime + 0.5);
         }
 
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
@@ -112,57 +121,79 @@
             currentCandle = history[history.length-1];
         }
 
-        function getEMA(period) {
-            const closes = history.map(h => h.close);
-            let k = 2 / (period + 1); let ema = closes[0];
-            for (let i = 1; i < closes.length; i++) ema = closes[i] * k + ema * (1 - k);
-            return ema;
+        function getEMA(p) {
+            const c = history.map(h => h.close);
+            let k = 2/(p+1), e = c[0];
+            for (let i=1; i<c.length; i++) e = c[i]*k + e*(1-k);
+            return e;
         }
 
-        function analyzePatterns() {
-            const c = history[history.length-1];
-            const body = Math.abs(c.open - c.close);
-            const range = c.high - c.low;
-            if (body / range < 0.1) return "DOJI";
-            if (c.close > c.open && (c.high - c.close) < body * 0.2 && (c.open - c.low) > body * 1.5) return "HAMMER";
-            return "NORMAL";
+        function getRSI(p=14) {
+            const c = history.map(h => h.close);
+            if(c.length < p) return 50;
+            let up=0, dn=0;
+            for(let i=c.length-p; i<c.length; i++) {
+                let diff = c[i] - c[i-1];
+                if(diff > 0) up += diff; else dn -= diff;
+            }
+            return 100 - (100 / (1 + (up/dn)));
+        }
+
+        function getATR(p=14) {
+            const slice = history.slice(-p);
+            let sum = 0;
+            slice.forEach(c => sum += (c.high - c.low));
+            return sum / p;
         }
 
         function update() {
             if (history.length < 30 || STRIKE === 0) return;
             const delta = lastBTC - STRIKE;
-            const ema9 = getEMA(9); const ema21 = getEMA(21);
-            const pattern = analyzePatterns();
-
-            // UI Update: Distance
-            const dEl = document.getElementById('dist-val');
-            dEl.innerText = Math.abs(delta).toFixed(2);
-            dEl.className = Math.abs(delta) < 30 ? "text-2xl font-black tabular-nums dist-danger" : "text-2xl font-black tabular-nums text-indigo-400";
-            document.getElementById('dist-status').innerText = delta > 0 ? "ABOVE STRIKE" : "BELOW STRIKE";
-
-            // UI Update: Pattern & EMA
-            const pEl = document.getElementById('pattern-status');
-            pEl.innerText = pattern;
-            pEl.className = pattern !== "NORMAL" ? "text-xs font-bold text-green-400 animate-pulse" : "text-xs font-bold text-yellow-500 italic";
+            const ema9 = getEMA(9), ema21 = getEMA(21);
+            const rsi = getRSI();
+            const atr = getATR();
             
+            // UI: Stats
+            document.getElementById('dist-val').innerText = Math.abs(delta).toFixed(2);
+            document.getElementById('dist-val').className = Math.abs(delta) < 30 ? "text-2xl font-black tabular-nums dist-danger" : "text-2xl font-black tabular-nums text-indigo-400";
+            document.getElementById('dist-status').innerText = delta > 0 ? "ABOVE STRIKE" : "BELOW STRIKE";
+            
+            const rEl = document.getElementById('rsi-status');
+            rEl.innerText = rsi > 70 ? "OVERBOUGHT" : rsi < 30 ? "OVERSOLD" : "NEUTRAL";
+            rEl.className = rsi > 70 ? "text-xs font-bold text-red-500" : rsi < 30 ? "text-xs font-bold text-green-500" : "text-xs font-bold text-slate-400";
+            document.getElementById('rsi-numeric').innerText = "RSI: " + rsi.toFixed(1);
+            document.getElementById('atr-val').innerText = atr.toFixed(2);
+
             const eEl = document.getElementById('ema-status');
-            eEl.innerText = ema9 > ema21 ? "BULLISH (9>21)" : "BEARISH (9<21)";
+            eEl.innerText = ema9 > ema21 ? "BULLISH" : "BEARISH";
             eEl.className = ema9 > ema21 ? "text-xs font-bold text-green-500" : "text-xs font-bold text-red-500";
 
-            // Logic
+            // BRAIN LOGIC
             const now = new Date();
             const remM = 14 - (now.getMinutes() % 15);
-            let score = 0;
-            if (ema9 > ema21 && delta < 0) score += 40;
-            if (ema9 < ema21 && delta > 0) score += 40;
-            if (pattern !== "NORMAL") score += 20;
+            let score = 5;
 
-            const conf = Math.min(score + (remM < 2 ? 30 : 5), 99);
+            // 1. Trend & Position (Core)
+            if (ema9 > ema21 && delta < 0) score += 30; // Bullish + Price under strike = Buy UP
+            if (ema9 < ema21 && delta > 0) score += 30; // Bearish + Price over strike = Buy DOWN
+            
+            // 2. Momentum Filter (RSI)
+            if (delta < 0 && rsi < 40) score += 20; // Good for UP
+            if (delta > 0 && rsi > 60) score += 20; // Good for DOWN
+            if ((delta < 0 && rsi > 75) || (delta > 0 && rsi < 25)) score -= 30; // Overextended - Caution!
+
+            // 3. Volatility Check (ATR)
+            if (Math.abs(delta) > atr) score += 15; // Gap is wider than 1m noise
+
+            // 4. Timing
+            if (remM <= 3 && remM >= 1) score += 20; // Golden Window
+
+            const conf = Math.max(5, Math.min(score, 99));
             document.getElementById('conf-val').innerText = conf + "%";
             document.getElementById('conf-bar').style.width = conf + "%";
 
             const sigText = document.getElementById('signal-text');
-            if (remM <= 1 && conf > 65) {
+            if (remM <= 2 && conf > 70) {
                 const side = delta > 0 ? 'DOWN' : 'UP';
                 sigText.innerText = side;
                 sigText.className = (side === 'UP' ? 'signal-up' : 'signal-down') + ' font-black text-7xl italic';
@@ -180,11 +211,9 @@
             const time = Math.floor(d.E/60000)*60;
             if(!currentCandle || time > currentCandle.time) {
                 currentCandle = { time, open: lastBTC, high: lastBTC, low: lastBTC, close: lastBTC };
-                history.push(currentCandle);
+                history.push(currentCandle); if(history.length > 200) history.shift();
             } else {
-                currentCandle.close = lastBTC;
-                currentCandle.high = Math.max(currentCandle.high, lastBTC);
-                currentCandle.low = Math.min(currentCandle.low, lastBTC);
+                currentCandle.close = lastBTC; currentCandle.high = Math.max(currentCandle.high, lastBTC); currentCandle.low = Math.min(currentCandle.low, lastBTC);
             }
             series.update(currentCandle); update();
         };
@@ -199,7 +228,7 @@
         document.getElementById('strike-manual').addEventListener('input', (e) => {
             STRIKE = parseFloat(e.target.value);
             if (strikeLine) series.removePriceLine(strikeLine);
-            strikeLine = series.createPriceLine({ price: STRIKE, color: '#ef4444', lineWidth: 2, lineStyle: 2, title: 'STRIKE' });
+            strikeLine = series.createPriceLine({ price: STRIKE, color: '#6366f1', lineWidth: 2, lineStyle: 2, title: 'STRIKE' });
         });
 
         init();
