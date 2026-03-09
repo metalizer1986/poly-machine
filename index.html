@@ -2,38 +2,42 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL ALPHA V7 | RAW ENGINE</title>
+    <title>TERMINAL ALPHA V8 | INDICATORS MODE</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
     <style>
-        body { background: #020204; color: #ececec; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
-        .panel { background: #09090b; border: 1px solid #1a1a1e; border-radius: 12px; }
-        .glitch-text { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .input-dark { background: #121214; border: 1px solid #2a2a2e; color: #00ffad; padding: 2px 8px; border-radius: 4px; outline: none; }
+        body { background: #050505; color: #e0e0e0; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
+        .panel { background: #0c0c0f; border: 1px solid #1a1b1f; border-radius: 12px; }
+        .indicator-val { font-size: 10px; font-weight: bold; }
+        .status-up { color: #00ffad; }
+        .status-down { color: #ff3b69; }
     </style>
 </head>
-<body class="h-screen p-2 grid grid-cols-[260px_1fr_320px] gap-2">
+<body class="h-screen p-3 grid grid-cols-[280px_1fr_360px] gap-3">
 
-    <div class="panel p-3 flex flex-col overflow-hidden">
-        <div class="text-[10px] font-bold text-blue-500 mb-4 tracking-tighter uppercase">Binance Raw Feed</div>
-        <div id="tape" class="text-[11px] space-y-1 overflow-y-auto flex-1 scrollbar-hide"></div>
+    <div class="panel p-4 flex flex-col overflow-hidden border-gray-800/40">
+        <div class="text-[10px] text-blue-500 font-black mb-4 tracking-widest uppercase">Live Binance Data</div>
+        <div id="tape" class="flex-1 overflow-y-auto space-y-1 text-[11px] scrollbar-hide"></div>
     </div>
 
-    <div class="flex flex-col gap-2">
-        <div class="grid grid-cols-3 gap-2">
-            <div class="panel p-4">
-                <div class="text-[9px] text-gray-500 uppercase">Current BTC</div>
-                <div id="price" class="text-3xl font-black text-white tabular-nums">0.00</div>
+    <div class="flex flex-col gap-3">
+        <div class="grid grid-cols-4 gap-3">
+            <div class="panel p-3 border-l-4 border-l-blue-500">
+                <div class="text-[9px] text-gray-500 uppercase">BTC Price</div>
+                <div id="price" class="text-2xl font-black">0.00</div>
             </div>
-            <div class="panel p-4">
-                <div class="text-[9px] text-gray-500 uppercase">Target (Strike)</div>
-                <input id="strike-manual" type="number" step="0.01" class="text-xl font-black bg-transparent text-red-500 w-full outline-none" placeholder="SET MANUALLY">
+            <div class="panel p-3 border-l-4 border-l-red-500">
+                <div class="text-[9px] text-gray-500 uppercase">Strike (Target)</div>
+                <input id="strike-manual" type="number" class="w-full bg-transparent text-2xl font-black outline-none" placeholder="0.00">
             </div>
-            <div class="panel p-4">
-                <div class="text-[9px] text-gray-500 uppercase">Difference</div>
-                <div id="diff" class="text-xl font-black">---</div>
+            <div class="panel p-3 border-l-4 border-l-purple-500">
+                <div class="text-[9px] text-gray-500 uppercase">RSI (14)</div>
+                <div id="rsi-val" class="text-2xl font-black">--</div>
+            </div>
+            <div class="panel p-3 border-l-4 border-l-yellow-500">
+                <div class="text-[9px] text-gray-500 uppercase">Trend Score</div>
+                <div id="conf-val" class="text-2xl font-black">0%</div>
             </div>
         </div>
         
@@ -42,118 +46,152 @@
         </div>
     </div>
 
-    <div class="panel p-4 flex flex-col">
-        <div class="flex justify-between items-center mb-6">
-            <span class="text-[10px] font-bold text-gray-600">ENGINE V7.0</span>
-            <div id="status-dot" class="h-2 w-2 rounded-full bg-red-500 animate-ping"></div>
+    <div class="panel p-6 flex flex-col relative">
+        <div class="flex justify-between items-center mb-8">
+            <span class="text-[10px] font-bold text-gray-500 tracking-widest">ALPHA LOGIC V8.2</span>
+            <div id="status-pulse" class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
         </div>
 
         <div id="decision" class="flex-1 flex flex-col justify-center items-center text-center">
-            <div class="text-gray-700 font-bold uppercase italic glitch-text">Syncing System...</div>
+            <div class="text-gray-700 font-bold uppercase animate-pulse italic">Анализируем поток...</div>
         </div>
 
-        <div class="mt-auto border-t border-gray-800 pt-4">
-            <div class="text-[10px] text-gray-500 uppercase mb-1">Time to Expiry</div>
-            <div id="timer" class="text-5xl font-black tracking-tighter italic text-blue-500">00:00</div>
+        <div class="mt-auto space-y-4 pt-6 border-t border-gray-800">
+            <div class="flex justify-between text-[10px]">
+                <span class="text-gray-500 uppercase">Probability Midpoint</span>
+                <span id="prob-val" class="font-bold text-blue-400">--%</span>
+            </div>
+            <div class="w-full h-1 bg-gray-900 rounded-full overflow-hidden">
+                <div id="prob-bar" class="h-full bg-blue-500 transition-all duration-500" style="width: 50%"></div>
+            </div>
+            <div class="flex justify-between items-end">
+                <div class="text-[10px] text-gray-500 uppercase">Time Left</div>
+                <div id="timer" class="text-5xl font-black tracking-tighter italic">00:00</div>
+            </div>
         </div>
     </div>
 
     <script>
         let STRIKE = 0;
         let lastBTC = 0;
-        const MARKET_ID = "btc-usd-up-down-2026-03-09-02-15"; // Проверь ID в ссылке!
+        let history = []; // Храним свечи для расчетов
+        const MARKET_ID = "btc-usd-up-down-2026-03-09-02-15";
 
-        // CHART INIT
+        // CHART
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-            layout: { background: { color: '#09090b' }, textColor: '#444' },
-            grid: { vertLines: { color: '#121214' }, horzLines: { color: '#121214' } },
+            layout: { background: { color: '#0c0c0f' }, textColor: '#555' },
+            grid: { vertLines: { color: '#16171b' }, horzLines: { color: '#16171b' } },
             timeScale: { timeVisible: true, borderVisible: false },
             rightPriceScale: { borderVisible: false, autoScale: true }
         });
         const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
         let strikeLine = null;
 
-        // MANUAL STRIKE OVERRIDE
-        document.getElementById('strike-manual').addEventListener('change', (e) => {
-            STRIKE = parseFloat(e.target.value);
-            updateStrikeLine();
-        });
-
-        function updateStrikeLine() {
-            if (strikeLine) series.removePriceLine(strikeLine);
-            strikeLine = series.createPriceLine({
-                price: STRIKE, color: '#ff3b69', lineWidth: 2, lineStyle: 0, axisLabelVisible: true, title: 'TARGET'
-            });
-            document.getElementById('status-dot').classList.remove('bg-red-500');
-            document.getElementById('status-dot').classList.add('bg-green-500');
+        // РАСЧЕТ RSI
+        function calculateRSI(closes, period = 14) {
+            if (closes.length <= period) return 50;
+            let gains = 0, losses = 0;
+            for (let i = closes.length - period; i < closes.length; i++) {
+                let diff = closes[i] - closes[i - 1];
+                if (diff >= 0) gains += diff; else losses -= diff;
+            }
+            let rs = gains / losses;
+            return 100 - (100 / (1 + rs));
         }
 
-        // AUTO SYNC ENGINE
-        async function forceSync() {
-            try {
-                const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/'+MARKET_ID)}&_=${Date.now()}`;
-                const r = await fetch(proxy);
-                const d = await r.json();
-                const s = parseFloat(d.strike_price || d.line || d.price_to_beat);
-                
-                if (s > 10000 && !document.activeElement.id.includes('strike-manual')) {
-                    STRIKE = s;
-                    document.getElementById('strike-manual').value = STRIKE;
-                    updateStrikeLine();
-                }
-            } catch(e) {}
+        // ОБНОВЛЕНИЕ СИГНАЛА (УМНАЯ ЛОГИКА)
+        function updateSignal() {
+            if (STRIKE <= 0 || history.length < 20) return;
+            
+            const closes = history.map(c => c.close);
+            const rsi = calculateRSI(closes);
+            document.getElementById('rsi-val').innerText = rsi.toFixed(1);
+            
+            const delta = lastBTC - STRIKE;
+            const decisionEl = document.getElementById('decision');
+            
+            // Расчет уверенности (Confluence)
+            let score = 0;
+            if (delta > 30) score += 30; // Цена выше страйка
+            if (delta < -30) score -= 30; // Цена ниже страйка
+            if (rsi > 70) score += 40; // Перекупленность (пора вниз)
+            if (rsi < 30) score -= 40; // Перепроданность (пора вверх)
+
+            document.getElementById('conf-val').innerText = Math.abs(score) + "%";
+
+            // ВЫВОД ЛОГИЧНОГО СИГНАЛА
+            if (delta > 40 && rsi > 65) {
+                // Цена улетела вверх + RSI говорит о перегреве = Сильный сигнал DOWN
+                decisionEl.innerHTML = `<div class="text-red-500 text-[10px] font-black tracking-[0.3em] mb-2 uppercase">REVERSAL DETECTED</div><div class="text-6xl font-black text-red-500">DOWN</div><div class="text-[9px] mt-4 text-gray-500 uppercase">BTC Overbought + Above Strike</div>`;
+            } else if (delta < -40 && rsi < 35) {
+                // Цена упала ниже страйка + RSI на дне = Сильный сигнал UP
+                decisionEl.innerHTML = `<div class="text-green-500 text-[10px] font-black tracking-[0.3em] mb-2 uppercase">REVERSAL DETECTED</div><div class="text-6xl font-black text-green-500">UP</div><div class="text-[9px] mt-4 text-gray-500 uppercase">BTC Oversold + Below Strike</div>`;
+            } else {
+                decisionEl.innerHTML = `<div class="text-gray-800 font-bold uppercase italic tracking-widest text-xl">Waiting for<br>Confirmation</div>`;
+            }
         }
 
-        // BINANCE CORE
+        // BINANCE FEED
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
         ws.onmessage = e => {
             const d = JSON.parse(e.data);
             lastBTC = parseFloat(d.p);
             document.getElementById('price').innerText = lastBTC.toFixed(2);
             
-            if (STRIKE > 0) {
-                const delta = lastBTC - STRIKE;
-                const diffEl = document.getElementById('diff');
-                diffEl.innerText = (delta > 0 ? '+' : '') + delta.toFixed(2);
-                diffEl.className = `text-xl font-black ${delta > 0 ? 'text-green-500' : 'text-red-500'}`;
-                
-                // DECISION LOGIC
-                const decisionEl = document.getElementById('decision');
-                if (delta > 40) {
-                    decisionEl.innerHTML = `<div class="text-green-500 text-xs font-bold tracking-[0.3em] mb-2 uppercase">BUY UP SIGNAL</div><div class="text-5xl font-black leading-none">UP</div>`;
-                } else if (delta < -40) {
-                    decisionEl.innerHTML = `<div class="text-red-500 text-xs font-bold tracking-[0.3em] mb-2 uppercase">BUY DOWN SIGNAL</div><div class="text-5xl font-black leading-none">DOWN</div>`;
-                } else {
-                    decisionEl.innerHTML = `<div class="text-gray-700 font-bold uppercase">SCANNING...</div>`;
-                }
+            // Обновляем текущую свечу в истории
+            const time = Math.floor(d.E / 60000) * 60;
+            if (history.length > 0 && history[history.length-1].time === time) {
+                history[history.length-1].close = lastBTC;
             }
+            series.update({ time, close: lastBTC });
+            updateSignal();
 
-            series.update({ time: Math.floor(d.E / 60000) * 60, close: lastBTC });
-            
             const tape = document.getElementById('tape');
-            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between border-b border-white/5 pb-1"><span class="text-gray-600">${new Date().toLocaleTimeString()}</span><span class="${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'}">${lastBTC.toFixed(1)}</span></div>`);
-            if(tape.children.length > 40) tape.lastChild.remove();
+            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between py-1 border-b border-white/5"><span class="text-gray-600">${new Date().toLocaleTimeString()}</span><span class="${lastBTC > STRIKE ? 'text-green-400' : 'text-red-400'} font-bold">${lastBTC.toFixed(1)}</span></div>`);
+            if(tape.children.length > 35) tape.lastChild.remove();
         };
 
-        // UI HELPERS
-        setInterval(() => {
-            const now = new Date();
-            const m = now.getMinutes(); const s = now.getSeconds();
-            const remM = 14 - (m % 15); const remS = 59 - s;
-            document.getElementById('timer').innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
-        }, 1000);
+        // MANUAL STRIKE
+        document.getElementById('strike-manual').addEventListener('input', (e) => {
+            STRIKE = parseFloat(e.target.value);
+            if (strikeLine) series.removePriceLine(strikeLine);
+            strikeLine = series.createPriceLine({ price: STRIKE, color: '#ff3b69', lineWidth: 2, title: 'TARGET' });
+        });
 
-        async function loadHistory() {
+        // AUTO-SYNC PREDICT.FUN
+        async function sync() {
+            const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/'+MARKET_ID)}&_=${Date.now()}`;
+            try {
+                const r = await fetch(proxy); const d = await r.json();
+                const s = parseFloat(d.strike_price || d.line || d.price_to_beat);
+                if (s > 10000 && document.activeElement.id !== 'strike-manual') {
+                    STRIKE = s; document.getElementById('strike-manual').value = STRIKE;
+                    if (strikeLine) series.removePriceLine(strikeLine);
+                    strikeLine = series.createPriceLine({ price: STRIKE, color: '#ff3b69', lineWidth: 2, title: 'TARGET' });
+                }
+                document.getElementById('prob-val').innerText = Math.round(d.up_price || 50) + '%';
+                document.getElementById('prob-bar').style.width = (d.up_price || 50) + '%';
+            } catch(e) {}
+        }
+
+        // LOAD HISTORY
+        async function load() {
             const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
             const data = await r.json();
-            series.setData(data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) })));
+            history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
+            series.setData(history);
             chart.timeScale().fitContent();
         }
 
-        loadHistory();
-        setInterval(forceSync, 5000);
-        forceSync();
-
+        load();
+        setInterval(sync, 5000);
+        setInterval(() => {
+            const now = new Date();
+            const remM = 14 - (now.getMinutes() % 15);
+            const remS = 59 - now.getSeconds();
+            document.getElementById('timer').innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
+        }, 1000);
+        
         new ResizeObserver(() => {
             chart.applyOptions({ width: document.getElementById('chart-box').clientWidth, height: document.getElementById('chart-box').clientHeight });
         }).observe(document.getElementById('chart-box'));
