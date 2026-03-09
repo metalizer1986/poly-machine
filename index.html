@@ -2,92 +2,87 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL ALPHA V14 | SNIPER PRO</title>
+    <title>TERMINAL ALPHA V15 | VALUE HUNTER</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
     <style>
         body { background: #010204; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
-        .panel { background: #080a0f; border: 1px solid #1e293b; border-radius: 16px; transition: all 0.3s ease; }
-        .rsi-ready { color: #00ffad; font-weight: 800; animation: blink 1s infinite; }
-        .rsi-wait { color: #64748b; font-weight: 400; }
-        @keyframes blink { 50% { opacity: 0.4; } }
-        #rsi-hint { font-size: 10px; margin-top: 4px; letter-spacing: 0.1em; }
+        .panel { background: #080a0f; border: 1px solid #1e293b; border-radius: 12px; }
+        .value-good { color: #00ffad; text-shadow: 0 0 10px rgba(0,255,173,0.3); }
+        .value-bad { color: #f87171; }
+        .alert-active { border-color: #3b82f6 !important; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); }
     </style>
 </head>
 <body class="h-screen p-4 grid grid-cols-[280px_1fr_380px] gap-4">
 
     <div class="panel p-5 flex flex-col overflow-hidden">
-        <div class="flex justify-between items-center mb-6 pb-3 border-b border-slate-800">
-            <span class="text-[10px] text-blue-400 font-black tracking-widest uppercase">Signal Tape</span>
-            <span id="sync-timer" class="text-[9px] text-slate-600">60s</span>
-        </div>
+        <div class="text-[10px] text-blue-400 font-black mb-4 border-b border-slate-800 pb-2">MARKET PULSE</div>
         <div id="tape" class="flex-1 overflow-y-auto space-y-1 text-[11px] scrollbar-hide"></div>
     </div>
 
     <div class="flex flex-col gap-4">
         <div class="grid grid-cols-4 gap-4">
             <div class="panel p-4">
-                <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">BTC Price</div>
+                <div class="text-[9px] text-slate-500 uppercase font-bold">BTC Price</div>
                 <div id="price" class="text-2xl font-black text-white tabular-nums">0.00</div>
             </div>
             <div class="panel p-4 border-r-2 border-red-900/40">
-                <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Strike</div>
+                <div class="text-[9px] text-slate-500 uppercase font-bold">Strike</div>
                 <input id="strike-manual" type="number" step="0.01" class="w-full bg-transparent text-2xl font-black text-red-500 outline-none" placeholder="0.00">
             </div>
             <div class="panel p-4">
-                <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">RSI Analyzer</div>
+                <div class="text-[9px] text-slate-500 uppercase font-bold">RSI (14)</div>
                 <div id="rsi-val" class="text-2xl font-black text-purple-400">--</div>
-                <div id="rsi-hint" class="rsi-wait">SCANNING...</div>
             </div>
             <div class="panel p-4">
-                <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Conf. Score</div>
-                <div id="conf-val" class="text-2xl font-black text-slate-600">0%</div>
+                <div class="text-[9px] text-slate-500 uppercase font-bold">Value Rating</div>
+                <div id="value-status" class="text-lg font-black text-slate-600">SCANNING</div>
             </div>
         </div>
-        
-        <div class="panel flex-1 relative overflow-hidden" id="chart-box">
-            <div id="chart" class="absolute inset-0"></div>
-        </div>
+        <div class="panel flex-1 relative overflow-hidden" id="chart-box"><div id="chart" class="absolute inset-0"></div></div>
     </div>
 
-    <div id="signal-card" class="panel p-8 flex flex-col relative overflow-hidden transition-all duration-500">
-        <div class="flex justify-between items-center mb-10">
-            <span class="text-[10px] font-bold text-slate-600 tracking-widest uppercase italic">Sniper Engine V14</span>
-            <div id="logic-status" class="px-2 py-0.5 rounded border border-slate-800 text-[8px] text-slate-500">INIT</div>
+    <div id="signal-card" class="panel p-8 flex flex-col relative transition-all duration-500">
+        <div class="flex justify-between items-center mb-6">
+            <span class="text-[10px] font-bold text-slate-600 uppercase italic">Logic Engine V15.0</span>
+            <div id="timer" class="text-3xl font-black tracking-tighter italic text-slate-500">00:00</div>
         </div>
 
         <div id="decision" class="flex-1 flex flex-col justify-center items-center text-center">
-            <div class="text-slate-800 font-bold uppercase tracking-[0.2em]">Live Stream Active</div>
+            <div class="text-slate-800 font-bold uppercase tracking-[0.2em]">Ready to Analyze</div>
         </div>
 
-        <div class="mt-auto space-y-4 pt-8 border-t border-slate-800/40">
-            <div class="flex justify-between items-end">
-                <div id="timer" class="text-6xl font-black tracking-tighter italic tabular-nums text-slate-400">00:00</div>
-                <div class="flex flex-col items-end">
-                    <span id="prob-val" class="text-xl font-black text-blue-500">50% UP</span>
-                    <span class="text-[9px] text-slate-600 uppercase font-black">Market Mid</span>
-                </div>
+        <div class="mt-auto space-y-6 pt-6 border-t border-slate-800/40">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Conf. Score</span>
+                <span id="conf-val" class="text-3xl font-black text-slate-700">0%</span>
             </div>
-            <div class="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
-                <div id="prob-bar" class="h-full bg-blue-600 shadow-[0_0_10px_#2563eb]" style="width: 50%"></div>
+            <div class="flex justify-between items-center">
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-slate-600 uppercase font-black">Contract Price</span>
+                    <span id="market-price" class="text-xl font-black text-blue-500">$0.50</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-[9px] text-slate-600 uppercase font-black">Potential ROI</span>
+                    <div id="roi-val" class="text-xl font-black text-green-500">+100%</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let STRIKE = 0, lastBTC = 0, history = [], nextRefresh = 60, prevRSI = 50;
+        let STRIKE = 0, lastBTC = 0, history = [], nextRefresh = 60;
         const alertSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3');
         alertSnd.volume = 0.3;
 
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             layout: { background: { color: '#080a0f' }, textColor: '#475569' },
             grid: { vertLines: { color: '#111827' }, horzLines: { color: '#111827' } },
-            timeScale: { borderVisible: false },
-            rightPriceScale: { borderVisible: false, autoScale: true }
+            rightPriceScale: { borderVisible: false },
+            timeScale: { borderVisible: false }
         });
         const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
-        let strikeLine = null;
 
         async function fullRefresh() {
             try {
@@ -96,7 +91,6 @@
                 history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
                 series.setData(history);
                 chart.timeScale().fitContent();
-                nextRefresh = 60;
             } catch(e) {}
         }
 
@@ -110,107 +104,68 @@
             return 100 - (100 / (1 + (up / (down || 1))));
         }
 
-        function processLogic() {
+        function processLogic(contractPrice) {
             if (STRIKE <= 0 || history.length < 20) return;
-            const currentRSI = calculateRSI(history.map(c => c.close));
-            document.getElementById('rsi-val').innerText = currentRSI.toFixed(1);
+            const rsi = calculateRSI(history.map(c => c.close));
+            document.getElementById('rsi-val').innerText = rsi.toFixed(1);
             
             const now = new Date();
             const remM = 14 - (now.getMinutes() % 15);
             const delta = lastBTC - STRIKE;
-            const hintEl = document.getElementById('rsi-hint');
-            
-            // --- RSI DIRECTION LOGIC ---
-            let rsiSignal = false;
-            if (currentRSI >= 70) {
-                if (currentRSI < prevRSI) { // Разворот вниз
-                    hintEl.innerText = "READY (DOWN)"; hintEl.className = "rsi-ready text-red-500";
-                    rsiSignal = (delta > 0);
-                } else {
-                    hintEl.innerText = "WAIT (PEAKING)"; hintEl.className = "rsi-wait text-yellow-600";
-                }
-            } else if (currentRSI <= 30) {
-                if (currentRSI > prevRSI) { // Разворот вверх
-                    hintEl.innerText = "READY (UP)"; hintEl.className = "rsi-ready text-green-500";
-                    rsiSignal = (delta < 0);
-                } else {
-                    hintEl.innerText = "WAIT (DIPPING)"; hintEl.className = "rsi-wait text-yellow-600";
-                }
-            } else {
-                hintEl.innerText = "STABLE"; hintEl.className = "rsi-wait";
-            }
-            prevRSI = currentRSI;
+            const score = (Math.abs(delta) > 60 ? 40 : 0) + (rsi > 70 || rsi < 30 ? 40 : 0);
 
-            let score = 0;
-            if (Math.abs(delta) > 50) score += 30;
-            if (rsiSignal) score += 50;
-            if (remM < 2) score = 0;
+            // Fair Value Logic
+            const vStatusEl = document.getElementById('value-status');
+            const roiVal = (1 / contractPrice - 1) * 100;
+            document.getElementById('roi-val').innerText = `+${roiVal.toFixed(0)}%`;
+            document.getElementById('market-price').innerText = `$${contractPrice.toFixed(2)}`;
 
-            const confEl = document.getElementById('conf-val');
-            confEl.innerText = Math.round(score) + "%";
-            confEl.className = `text-2xl font-black ${score >= 70 ? 'text-blue-500' : 'text-slate-600'}`;
+            if (contractPrice > 0.85) { vStatusEl.innerText = "OVERPRICED"; vStatusEl.className = "text-lg font-black value-bad"; }
+            else if (contractPrice < 0.35 && score > 50) { vStatusEl.innerText = "UNDERVALUED"; vStatusEl.className = "text-lg font-black value-good text-blue-400"; }
+            else if (contractPrice < 0.60) { vStatusEl.innerText = "GOOD VALUE"; vStatusEl.className = "text-lg font-black value-good"; }
+            else { vStatusEl.innerText = "NEUTRAL"; vStatusEl.className = "text-lg font-black text-slate-500"; }
 
             const decEl = document.getElementById('decision');
+            const confEl = document.getElementById('conf-val');
             const card = document.getElementById('signal-card');
-            if (score >= 75 && remM >= 3) {
+
+            confEl.innerText = score + "%";
+            if (score >= 70 && remM >= 3 && contractPrice < 0.75) {
                 if (!card.classList.contains('alert-active')) { alertSnd.play(); card.classList.add('alert-active'); }
-                const side = delta > 0 ? 'DOWN' : 'UP';
-                decEl.innerHTML = `<div class="${delta > 0 ? 'text-red-500' : 'text-green-500'} font-black text-8xl">${side}</div><div class="text-[10px] text-slate-500 mt-4 uppercase">RSI Reversal Confirmed</div>`;
+                decEl.innerHTML = `<div class="${delta > 0 ? 'text-red-500' : 'text-green-500'} font-black text-8xl">${delta > 0 ? 'DOWN' : 'UP'}</div>`;
             } else {
                 card.classList.remove('alert-active');
-                decEl.innerHTML = `<div class="text-slate-800 font-bold uppercase italic tracking-widest text-sm">Monitoring...</div>`;
+                decEl.innerHTML = `<div class="text-slate-800 font-bold uppercase italic text-sm">Waiting for Entry Point</div>`;
             }
         }
 
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
         ws.onmessage = e => {
-            const d = JSON.parse(e.data); lastBTC = parseFloat(d.p);
+            lastBTC = parseFloat(JSON.parse(e.data).p);
             document.getElementById('price').innerText = lastBTC.toLocaleString();
-            const time = Math.floor(d.E / 60000) * 60;
-            series.update({ time, close: lastBTC });
-            if (history.length > 0 && history[history.length-1].time === time) history[history.length-1].close = lastBTC;
-            processLogic();
-            
-            const tape = document.getElementById('tape');
-            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between py-1.5 border-b border-slate-900/50"><span class="text-slate-700">${new Date().toLocaleTimeString()}</span><span class="${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'} font-bold">${lastBTC.toFixed(1)}</span></div>`);
-            if(tape.children.length > 30) tape.lastChild.remove();
+            series.update({ time: Math.floor(Date.now() / 60000) * 60, close: lastBTC });
+            // processLogic будет вызываться из syncMarket, чтобы иметь цену контракта
         };
-
-        setInterval(() => {
-            const now = new Date();
-            const remM = 14 - (now.getMinutes() % 15);
-            const remS = 59 - now.getSeconds();
-            const tEl = document.getElementById('timer');
-            tEl.innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
-            tEl.className = `text-6xl font-black tracking-tighter italic tabular-nums ${remM < 2 ? 'text-red-700 animate-pulse' : 'text-slate-500'}`;
-            nextRefresh--;
-            document.getElementById('sync-timer').innerText = `${nextRefresh}s`;
-            if (nextRefresh <= 0) fullRefresh();
-        }, 1000);
-
-        document.getElementById('strike-manual').addEventListener('input', (e) => {
-            STRIKE = parseFloat(e.target.value);
-            if (strikeLine) series.removePriceLine(strikeLine);
-            strikeLine = series.createPriceLine({ price: STRIKE, color: '#ef4444', lineWidth: 2, title: 'TARGET' });
-        });
 
         async function syncMarket() {
             try {
                 const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/btc-usd-up-down-2026-03-09-02-15')}&_=${Date.now()}`;
                 const r = await fetch(proxy); const d = await r.json();
-                const s = parseFloat(d.strike_price || d.line || d.price_to_beat);
-                if (s > 10000 && document.activeElement.id !== 'strike-manual') {
-                    STRIKE = s; document.getElementById('strike-manual').value = STRIKE;
-                    if (strikeLine) series.removePriceLine(strikeLine);
-                    strikeLine = series.createPriceLine({ price: STRIKE, color: '#ef4444', lineWidth: 2, title: 'TARGET' });
-                }
-                document.getElementById('prob-val').innerText = Math.round(d.up_price || 50) + '% UP';
-                document.getElementById('prob-bar').style.width = (d.up_price || 50) + '%';
+                STRIKE = parseFloat(d.strike_price || d.line || d.price_to_beat);
+                document.getElementById('strike-manual').value = STRIKE;
+                const cPrice = (lastBTC > STRIKE) ? (d.down_price / 100 || 0.5) : (d.up_price / 100 || 0.5);
+                processLogic(cPrice);
             } catch(e) {}
         }
 
-        fullRefresh(); setInterval(syncMarket, 8000); syncMarket();
-        new ResizeObserver(() => chart.applyOptions({ width: document.getElementById('chart-box').clientWidth, height: document.getElementById('chart-box').clientHeight })).observe(document.getElementById('chart-box'));
+        setInterval(() => {
+            const now = new Date();
+            const remM = 14 - (now.getMinutes() % 15);
+            const remS = 59 - now.getSeconds();
+            document.getElementById('timer').innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
+        }, 1000);
+
+        fullRefresh(); setInterval(syncMarket, 5000);
     </script>
 </body>
 </html>
