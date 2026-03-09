@@ -2,15 +2,15 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL ALPHA V15.2 | LIVE FORCE</title>
+    <title>TERMINAL ALPHA V15.3 | VISUAL STRIKE</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
     <style>
         body { background: #010204; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
         .panel { background: #080a0f; border: 1px solid #1e293b; border-radius: 12px; }
+        .alert-active { border-color: #3b82f6 !important; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); }
         #tape div { border-bottom: 1px solid rgba(30, 41, 59, 0.3); padding: 4px 0; }
-        .alert-active { border-color: #3b82f6 !important; box-shadow: 0 0 30px rgba(59, 130, 246, 0.15); }
     </style>
 </head>
 <body class="h-screen p-4 grid grid-cols-[260px_1fr_360px] gap-4">
@@ -26,17 +26,17 @@
                 <div class="text-[9px] text-slate-500 uppercase font-bold">BTC Spot</div>
                 <div id="price" class="text-2xl font-black text-white tabular-nums">0.00</div>
             </div>
-            <div class="panel p-4 border-r-2 border-blue-500/30">
+            <div class="panel p-4 border-r-2 border-red-600/50">
                 <div class="text-[9px] text-slate-500 uppercase font-bold">Strike Price</div>
-                <input id="strike-manual" type="number" step="0.01" class="w-full bg-transparent text-2xl font-black text-red-500 outline-none" placeholder="---">
+                <input id="strike-manual" type="number" step="0.01" class="w-full bg-transparent text-2xl font-black text-red-500 outline-none" placeholder="0.00">
             </div>
             <div class="panel p-4">
                 <div class="text-[9px] text-slate-500 uppercase font-bold">RSI (14)</div>
                 <div id="rsi-val" class="text-2xl font-black text-purple-400">--</div>
             </div>
             <div class="panel p-4">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">Value</div>
-                <div id="value-status" class="text-lg font-black text-slate-600">WAIT</div>
+                <div class="text-[9px] text-slate-500 uppercase font-bold">Conf. Score</div>
+                <div id="conf-val" class="text-2xl font-black text-slate-600">0%</div>
             </div>
         </div>
         <div class="panel flex-1 relative overflow-hidden" id="chart-box">
@@ -46,25 +46,21 @@
 
     <div id="signal-card" class="panel p-6 flex flex-col transition-all duration-300">
         <div class="flex justify-between items-center mb-6">
-            <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest italic">V15.2 Sniper</span>
+            <span class="text-[10px] font-bold text-slate-600 uppercase italic">V15.3 Visual</span>
             <div id="timer" class="text-3xl font-black tracking-tighter text-slate-500 italic">00:00</div>
         </div>
         <div id="decision" class="flex-1 flex flex-col justify-center items-center text-center">
-            <div class="text-slate-800 font-bold uppercase tracking-[0.2em] animate-pulse">Syncing...</div>
+            <div class="text-slate-800 font-bold uppercase tracking-[0.2em] animate-pulse">Waiting for Data</div>
         </div>
         <div class="mt-auto pt-6 border-t border-slate-800/40 space-y-4">
-            <div class="flex justify-between items-center">
-                <span class="text-[9px] text-slate-600 font-black uppercase">Conf. Score</span>
-                <span id="conf-val" class="text-2xl font-black text-slate-700">0%</span>
-            </div>
-            <div class="flex justify-between items-center bg-slate-900/40 p-3 rounded-lg">
+            <div class="flex justify-between items-center bg-slate-900/40 p-4 rounded-lg">
                 <div class="flex flex-col">
-                    <span class="text-[9px] text-slate-500 uppercase font-black">ROI</span>
+                    <span class="text-[9px] text-slate-500 uppercase font-black">ROI Potential</span>
                     <span id="roi-val" class="text-lg font-black text-green-500">--%</span>
                 </div>
                 <div class="text-right flex flex-col">
-                    <span class="text-[9px] text-slate-500 uppercase font-black">Contract</span>
-                    <span id="market-price" class="text-lg font-black text-blue-500">$0.50</span>
+                    <span class="text-[9px] text-slate-500 uppercase font-black">Risk Level</span>
+                    <span id="risk-status" class="text-lg font-black text-blue-500">LOW</span>
                 </div>
             </div>
         </div>
@@ -72,16 +68,34 @@
 
     <script>
         let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null;
+        let strikeLine = null; // Хранилище для линии на графике
         const alertSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3');
         alertSnd.volume = 0.3;
 
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             layout: { background: { color: '#080a0f' }, textColor: '#64748b' },
             grid: { vertLines: { color: '#111827' }, horzLines: { color: '#111827' } },
-            timeScale: { timeVisible: true, secondsVisible: false, borderVisible: false },
-            rightPriceScale: { borderVisible: false }
+            timeScale: { timeVisible: true, borderVisible: false },
+            rightPriceScale: { borderVisible: false, autoScale: true }
         });
         const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
+
+        // Функция отрисовки линии страйка
+        function drawStrikeLine(price) {
+            if (strikeLine) {
+                series.removePriceLine(strikeLine);
+            }
+            if (price > 0) {
+                strikeLine = series.createPriceLine({
+                    price: price,
+                    color: '#ff4444',
+                    lineWidth: 3,
+                    lineStyle: LightweightCharts.LineStyle.Solid,
+                    axisLabelVisible: true,
+                    title: 'STRIKE',
+                });
+            }
+        }
 
         async function loadHistory() {
             try {
@@ -94,15 +108,14 @@
                 }));
                 series.setData(history);
                 currentCandle = history[history.length - 1];
-                chart.timeScale().fitContent();
-            } catch(e) { console.error("History fail", e); }
+            } catch(e) {}
         }
 
-        function calculateRSI(period = 14) {
-            if (history.length < period + 1) return 50;
-            const closes = history.map(c => c.close);
+        function calculateRSI() {
+            if (history.length < 15) return 50;
+            const closes = history.slice(-15).map(c => c.close);
             let up = 0, down = 0;
-            for (let i = closes.length - period; i < closes.length; i++) {
+            for (let i = 1; i < closes.length; i++) {
                 let diff = closes[i] - closes[i-1];
                 if (diff >= 0) up += diff; else down -= diff;
             }
@@ -110,7 +123,6 @@
         }
 
         function updateUI() {
-            if (STRIKE <= 0) return;
             const rsi = calculateRSI();
             document.getElementById('rsi-val').innerText = rsi.toFixed(1);
             
@@ -119,8 +131,10 @@
             const remM = 14 - (now.getMinutes() % 15);
             
             let score = 0;
-            if (Math.abs(delta) > 50) score += 40;
-            if (rsi > 70 || rsi < 30) score += 40;
+            if (STRIKE > 0) {
+                if (Math.abs(delta) > 50) score += 40;
+                if (rsi > 70 || rsi < 30) score += 40;
+            }
 
             document.getElementById('conf-val').innerText = score + "%";
             const decEl = document.getElementById('decision');
@@ -140,14 +154,11 @@
             const d = JSON.parse(e.data);
             lastBTC = parseFloat(d.p);
             const time = Math.floor(d.E / 60000) * 60;
-            
             document.getElementById('price').innerText = lastBTC.toLocaleString();
 
-            // Обновление графика В РЕАЛЬНОМ ВРЕМЕНИ
             if (!currentCandle || time > currentCandle.time) {
                 currentCandle = { time, open: lastBTC, high: lastBTC, low: lastBTC, close: lastBTC };
                 history.push(currentCandle);
-                if(history.length > 150) history.shift();
             } else {
                 currentCandle.close = lastBTC;
                 currentCandle.high = Math.max(currentCandle.high, lastBTC);
@@ -155,10 +166,9 @@
             }
             series.update(currentCandle);
 
-            // Обновление ленты (Пульс)
             const tape = document.getElementById('tape');
             tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between"><span>${new Date().toLocaleTimeString()}</span><span class="${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'} font-bold">${lastBTC.toFixed(1)}</span></div>`);
-            if(tape.children.length > 35) tape.lastChild.remove();
+            if(tape.children.length > 30) tape.lastChild.remove();
 
             updateUI();
         };
@@ -166,7 +176,7 @@
         const strikeInput = document.getElementById('strike-manual');
         strikeInput.addEventListener('input', (e) => {
             STRIKE = parseFloat(e.target.value);
-            strikeInput.classList.add('bg-blue-900/20');
+            drawStrikeLine(STRIKE); // Мгновенная отрисовка при вводе
         });
 
         async function syncMarket() {
@@ -175,7 +185,11 @@
                 const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/btc-usd-up-down-2026-03-09-02-15')}&_=${Date.now()}`;
                 const r = await fetch(proxy); const d = await r.json();
                 const s = parseFloat(d.strike_price || d.line || d.price_to_beat);
-                if (s > 1000) { STRIKE = s; strikeInput.value = STRIKE; strikeInput.classList.remove('bg-blue-900/20'); }
+                if (s > 1000) { 
+                    STRIKE = s; 
+                    strikeInput.value = STRIKE; 
+                    drawStrikeLine(STRIKE); 
+                }
             } catch(e) {}
         }
 
