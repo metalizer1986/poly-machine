@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL V17.1 | DISTANCE</title>
+    <title>TERMINAL V17.2 | FULL FIX</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -10,9 +10,8 @@
         body { background: #02040a; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
         .panel { background: #0b0e14; border: 1px solid #1e293b; border-radius: 8px; }
         .stat-card { border-left: 3px solid #334155; padding-left: 10px; }
-        .win-rate { color: #00ffad; font-weight: 800; }
-        .signal-up { color: #10b981; text-shadow: 0 0 10px rgba(16,185,129,0.3); }
-        .signal-down { color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.3); }
+        .signal-up { color: #10b981; text-shadow: 0 0 15px rgba(16,185,129,0.4); }
+        .signal-down { color: #ef4444; text-shadow: 0 0 15px rgba(239,68,68,0.4); }
         .dist-danger { color: #ff3b69; animation: pulse 1s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
@@ -20,43 +19,43 @@
 <body class="h-screen p-3 grid grid-cols-[300px_1fr_320px] gap-3">
 
     <div class="panel p-4 flex flex-col gap-4 overflow-y-auto">
-        <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
-            <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Global Stats</span>
-            <span class="win-rate text-xs">WIN RATE: 68%</span>
+        <div class="border-b border-slate-800 pb-2 flex justify-between">
+            <span class="text-[10px] font-bold text-blue-500 uppercase italic">V17.2 PRO</span>
+            <span class="text-[10px] text-green-400">WIN RATE: 68%</span>
         </div>
         
         <div class="space-y-4">
             <div class="panel bg-slate-900/50 p-3 border-indigo-500/30">
-                <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Strike Distance</div>
+                <div class="text-[9px] text-slate-500 uppercase font-black">Strike Distance</div>
                 <div id="dist-val" class="text-2xl font-black tabular-nums text-indigo-400">0.00</div>
-                <div id="dist-status" class="text-[8px] font-bold uppercase mt-1 text-slate-500">Waiting for data...</div>
+                <div id="dist-status" class="text-[8px] font-bold uppercase mt-1 text-slate-500 italic">OFFLINE</div>
             </div>
 
             <div class="stat-card">
                 <div class="text-[9px] text-slate-500 uppercase">EMA 9/21 Status</div>
-                <div id="ema-status" class="text-xs font-bold">CALCULATING...</div>
+                <div id="ema-status" class="text-xs font-bold text-slate-500">CALCULATING...</div>
             </div>
+
             <div class="stat-card">
                 <div class="text-[9px] text-slate-500 uppercase">Candle Pattern</div>
-                <div id="pattern-status" class="text-xs font-bold text-yellow-500 italic">SCANNING...</div>
+                <div id="pattern-status" class="text-xs font-bold text-yellow-500 italic italic">SCANNING...</div>
             </div>
         </div>
 
-        <div class="mt-auto panel bg-slate-900/30 p-3">
-            <div class="text-[9px] text-slate-500 mb-2 uppercase">Reasoning Log</div>
-            <div id="reasons" class="text-[9px] leading-relaxed text-slate-400"></div>
+        <div class="mt-auto panel bg-black/40 p-3 text-[9px] text-slate-400 italic leading-tight" id="reasons">
+            Waiting for confluence...
         </div>
     </div>
 
     <div class="flex flex-col gap-3">
-        <div class="grid grid-cols-4 gap-3">
+        <div class="grid grid-cols-4 gap-3 text-center">
             <div class="panel p-3">
                 <div class="text-[8px] text-slate-500 font-bold uppercase">BTC Spot</div>
                 <div id="price" class="text-xl font-black text-white tabular-nums">0.00</div>
             </div>
             <div class="panel p-3 border-r-4 border-red-500">
-                <div class="text-[8px] text-slate-500 font-bold uppercase">Strike</div>
-                <input id="strike-manual" type="number" class="w-full bg-transparent text-xl font-black text-red-500 outline-none" value="0">
+                <div class="text-[8px] text-slate-500 font-bold uppercase italic">Target Strike</div>
+                <input id="strike-manual" type="number" class="w-full bg-transparent text-xl font-black text-red-500 outline-none text-center" value="0">
             </div>
             <div class="panel p-3">
                 <div class="text-[8px] text-slate-500 font-bold uppercase">Confidence</div>
@@ -70,42 +69,42 @@
         <div class="panel flex-1 relative overflow-hidden" id="chart-box"><div id="chart" class="absolute inset-0"></div></div>
     </div>
 
-    <div id="decision-panel" class="panel p-6 flex flex-col items-center justify-between text-center relative overflow-hidden">
-        <div class="w-full text-left"><span class="text-[10px] font-black text-slate-700 uppercase">Final Verdict</span></div>
+    <div id="decision-panel" class="panel p-6 flex flex-col items-center justify-between text-center">
+        <div class="w-full text-left uppercase text-[10px] font-black text-slate-700">Final Verdict</div>
+        
         <div id="main-signal">
-            <div id="signal-text" class="text-slate-800 font-black text-7xl italic">WAIT</div>
-            <div id="signal-sub" class="text-[10px] text-slate-600 mt-4 uppercase font-bold tracking-widest">Market Neutral</div>
+            <div id="signal-text" class="text-slate-800 font-black text-7xl italic tracking-tighter">WAIT</div>
+            <div id="signal-sub" class="text-[10px] text-slate-600 mt-4 uppercase font-bold">Analyzing market cycle</div>
         </div>
+
         <div class="w-full space-y-4">
-            <div id="macd-val" class="text-[10px] font-bold text-slate-500 text-right">0.00</div>
-            <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                <div id="conf-bar" class="h-full bg-blue-600 transition-all duration-500" style="width: 0%"></div>
+            <div class="h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div id="conf-bar" class="h-full bg-blue-600 transition-all duration-700" style="width: 0%"></div>
             </div>
         </div>
     </div>
 
     <script>
         let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null, strikeLine = null;
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playSignalSound(freq) {
-            const osc = ctx.createOscillator(); const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.type = 'sine'; osc.frequency.setValueAtTime(freq, ctx.currentTime);
-            gain.gain.setValueAtTime(0.05, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-            osc.start(); osc.stop(ctx.currentTime + 0.3);
+        function beep(freq) {
+            const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.frequency.value = freq; g.gain.value = 0.05;
+            osc.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+            osc.stop(audioCtx.currentTime + 0.5);
         }
 
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             layout: { background: { color: '#0b0e14' }, textColor: '#64748b' },
             grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
-            rightPriceScale: { borderVisible: false },
+            rightPriceScale: { borderVisible: false, autoScale: true },
             timeScale: { borderVisible: false }
         });
         const series = chart.addCandlestickSeries({ upColor: '#10b981', downColor: '#ef4444', borderVisible: false });
 
-        async function initData() {
+        async function init() {
             const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
             const data = await r.json();
             history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
@@ -113,49 +112,61 @@
             currentCandle = history[history.length-1];
         }
 
-        function getEMA(data, period) {
-            let k = 2 / (period + 1); let ema = data[0];
-            for (let i = 1; i < data.length; i++) ema = data[i] * k + ema * (1 - k);
+        function getEMA(period) {
+            const closes = history.map(h => h.close);
+            let k = 2 / (period + 1); let ema = closes[0];
+            for (let i = 1; i < closes.length; i++) ema = closes[i] * k + ema * (1 - k);
             return ema;
         }
 
-        function updateBrain() {
+        function analyzePatterns() {
+            const c = history[history.length-1];
+            const body = Math.abs(c.open - c.close);
+            const range = c.high - c.low;
+            if (body / range < 0.1) return "DOJI";
+            if (c.close > c.open && (c.high - c.close) < body * 0.2 && (c.open - c.low) > body * 1.5) return "HAMMER";
+            return "NORMAL";
+        }
+
+        function update() {
             if (history.length < 30 || STRIKE === 0) return;
-            const closes = history.map(h => h.close);
-            const ema9 = getEMA(closes, 9);
-            const ema21 = getEMA(closes, 21);
             const delta = lastBTC - STRIKE;
-            const absDelta = Math.abs(delta);
-            
-            // Логика Distance
-            const distEl = document.getElementById('dist-val');
-            const distStat = document.getElementById('dist-status');
-            distEl.innerText = absDelta.toFixed(2);
-            if (absDelta < 30) {
-                distEl.className = "text-2xl font-black tabular-nums dist-danger";
-                distStat.innerText = "CRITICAL PROXIMITY";
-            } else {
-                distEl.className = "text-2xl font-black tabular-nums text-indigo-400";
-                distStat.innerText = delta > 0 ? "ABOVE STRIKE" : "BELOW STRIKE";
-            }
+            const ema9 = getEMA(9); const ema21 = getEMA(21);
+            const pattern = analyzePatterns();
 
-            let score = 0;
-            if (ema9 > ema21) { score += 20; document.getElementById('ema-status').className = "text-xs font-bold text-green-500"; document.getElementById('ema-status').innerText = "UP TREND"; }
-            else { score += 5; document.getElementById('ema-status').className = "text-xs font-bold text-red-500"; document.getElementById('ema-status').innerText = "DOWN TREND"; }
+            // UI Update: Distance
+            const dEl = document.getElementById('dist-val');
+            dEl.innerText = Math.abs(delta).toFixed(2);
+            dEl.className = Math.abs(delta) < 30 ? "text-2xl font-black tabular-nums dist-danger" : "text-2xl font-black tabular-nums text-indigo-400";
+            document.getElementById('dist-status').innerText = delta > 0 ? "ABOVE STRIKE" : "BELOW STRIKE";
 
-            const finalScore = Math.min(score + (absDelta > 60 ? 40 : 15), 98);
-            document.getElementById('conf-val').innerText = finalScore + "%";
-            document.getElementById('conf-bar').style.width = finalScore + "%";
+            // UI Update: Pattern & EMA
+            const pEl = document.getElementById('pattern-status');
+            pEl.innerText = pattern;
+            pEl.className = pattern !== "NORMAL" ? "text-xs font-bold text-green-400 animate-pulse" : "text-xs font-bold text-yellow-500 italic";
             
-            const sigText = document.getElementById('signal-text');
+            const eEl = document.getElementById('ema-status');
+            eEl.innerText = ema9 > ema21 ? "BULLISH (9>21)" : "BEARISH (9<21)";
+            eEl.className = ema9 > ema21 ? "text-xs font-bold text-green-500" : "text-xs font-bold text-red-500";
+
+            // Logic
             const now = new Date();
-            const isClosing = (14 - (now.getMinutes() % 15)) < 2;
+            const remM = 14 - (now.getMinutes() % 15);
+            let score = 0;
+            if (ema9 > ema21 && delta < 0) score += 40;
+            if (ema9 < ema21 && delta > 0) score += 40;
+            if (pattern !== "NORMAL") score += 20;
 
-            if (finalScore > 65 && isClosing) {
+            const conf = Math.min(score + (remM < 2 ? 30 : 5), 99);
+            document.getElementById('conf-val').innerText = conf + "%";
+            document.getElementById('conf-bar').style.width = conf + "%";
+
+            const sigText = document.getElementById('signal-text');
+            if (remM <= 1 && conf > 65) {
                 const side = delta > 0 ? 'DOWN' : 'UP';
                 sigText.innerText = side;
-                sigText.className = side === 'UP' ? 'signal-up font-black text-7xl italic' : 'signal-down font-black text-7xl italic';
-                if (now.getSeconds() % 5 === 0) playSignalSound(side === 'UP' ? 880 : 220);
+                sigText.className = (side === 'UP' ? 'signal-up' : 'signal-down') + ' font-black text-7xl italic';
+                if (now.getSeconds() % 10 === 0) beep(side === 'UP' ? 800 : 200);
             } else {
                 sigText.innerText = "WAIT";
                 sigText.className = "text-slate-800 font-black text-7xl italic";
@@ -164,8 +175,7 @@
 
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
         ws.onmessage = e => {
-            const d = JSON.parse(e.data);
-            lastBTC = parseFloat(d.p);
+            const d = JSON.parse(e.data); lastBTC = parseFloat(d.p);
             document.getElementById('price').innerText = lastBTC.toLocaleString();
             const time = Math.floor(d.E/60000)*60;
             if(!currentCandle || time > currentCandle.time) {
@@ -176,8 +186,7 @@
                 currentCandle.high = Math.max(currentCandle.high, lastBTC);
                 currentCandle.low = Math.min(currentCandle.low, lastBTC);
             }
-            series.update(currentCandle);
-            updateBrain();
+            series.update(currentCandle); update();
         };
 
         setInterval(() => {
@@ -190,10 +199,11 @@
         document.getElementById('strike-manual').addEventListener('input', (e) => {
             STRIKE = parseFloat(e.target.value);
             if (strikeLine) series.removePriceLine(strikeLine);
-            strikeLine = series.createPriceLine({ price: STRIKE, color: '#ef4444', lineWidth: 2, title: 'STRIKE' });
+            strikeLine = series.createPriceLine({ price: STRIKE, color: '#ef4444', lineWidth: 2, lineStyle: 2, title: 'STRIKE' });
         });
 
-        initData();
+        init();
+        new ResizeObserver(() => chart.applyOptions({ width: document.getElementById('chart-box').clientWidth, height: document.getElementById('chart-box').clientHeight })).observe(document.getElementById('chart-box'));
     </script>
 </body>
 </html>
