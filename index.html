@@ -139,4 +139,47 @@
                     <div class="text-gray-500 text-lg font-bold uppercase tracking-widest">Жди момента...</div>
                     <div class="text-gray-600 text-sm mt-1 uppercase">Сигнала для входа нет</div>
                 `;
-                sigContainer.className = 'panel flex-1 flex flex-col items-center justify-center p-6 text-center border-gray-8
+                sigContainer.className = 'panel flex-1 flex flex-col items-center justify-center p-6 text-center border-gray-800';
+                valEl.className = 'text-7xl font-black text-white';
+            }
+
+            if (currentSignal !== 'NONE' && currentSignal !== lastSignalType) {
+                alertSound.play().catch(() => {});
+            }
+            lastSignalType = currentSignal;
+        }
+
+        // --- BINANCE WS ---
+        const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
+        ws.onmessage = e => {
+            const d = JSON.parse(e.data);
+            lastBTC = parseFloat(d.p);
+            document.getElementById('price').innerText = lastBTC.toLocaleString();
+            
+            if (STRIKE > 0) {
+                const diff = lastBTC - STRIKE;
+                const diffEl = document.getElementById('diff');
+                diffEl.innerText = `${diff > 0 ? '▲ +' : '▼ '}${diff.toFixed(2)} от страйка`;
+                diffEl.className = `text-xs font-bold mt-2 px-2 py-0.5 rounded ${diff > 0 ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`;
+            }
+
+            series.update({ time: Math.floor(d.E / 60000) * 60, close: lastBTC });
+
+            const tape = document.getElementById('tape');
+            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between py-1 border-b border-gray-900/50 ${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'}"><span>${new Date().toLocaleTimeString()}</span><span>${lastBTC.toFixed(1)}</span></div>`);
+            if(tape.children.length > 25) tape.lastChild.remove();
+        };
+
+        // --- ИСТОРИЯ И ТАЙМЕР ---
+        fetch(`https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100`)
+            .then(r => r.json()).then(data => {
+                series.setData(data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) })));
+                chart.timeScale().fitContent();
+            });
+
+        let s = 900; setInterval(() => { s--; if(s<0) s=900; const m=Math.floor(s/60), sec=s%60; document.getElementById('timer').innerText = `${m}:${sec<10?'0':''}${sec}`; }, 1000);
+        setInterval(getMarketData, 5000);
+        getMarketData();
+    </script>
+</body>
+</html>
