@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL V17 | QUANTUM STRIKE</title>
+    <title>TERMINAL V17.1 | DISTANCE</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -13,8 +13,8 @@
         .win-rate { color: #00ffad; font-weight: 800; }
         .signal-up { color: #10b981; text-shadow: 0 0 10px rgba(16,185,129,0.3); }
         .signal-down { color: #ef4444; text-shadow: 0 0 10px rgba(239,68,68,0.3); }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; }
+        .dist-danger { color: #ff3b69; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body class="h-screen p-3 grid grid-cols-[300px_1fr_320px] gap-3">
@@ -26,27 +26,25 @@
         </div>
         
         <div class="space-y-4">
+            <div class="panel bg-slate-900/50 p-3 border-indigo-500/30">
+                <div class="text-[9px] text-slate-500 uppercase font-bold mb-1">Strike Distance</div>
+                <div id="dist-val" class="text-2xl font-black tabular-nums text-indigo-400">0.00</div>
+                <div id="dist-status" class="text-[8px] font-bold uppercase mt-1 text-slate-500">Waiting for data...</div>
+            </div>
+
             <div class="stat-card">
                 <div class="text-[9px] text-slate-500 uppercase">EMA 9/21 Status</div>
                 <div id="ema-status" class="text-xs font-bold">CALCULATING...</div>
             </div>
             <div class="stat-card">
-                <div class="text-[9px] text-slate-500 uppercase">Bollinger Bands</div>
-                <div id="bb-status" class="text-xs font-bold text-slate-400">NEUTRAL</div>
-            </div>
-            <div class="stat-card">
                 <div class="text-[9px] text-slate-500 uppercase">Candle Pattern</div>
                 <div id="pattern-status" class="text-xs font-bold text-yellow-500 italic">SCANNING...</div>
-            </div>
-            <div class="stat-card">
-                <div class="text-[9px] text-slate-500 uppercase">S/R Levels (30m)</div>
-                <div id="sr-status" class="text-[10px] text-blue-300 font-bold">R: -- | S: --</div>
             </div>
         </div>
 
         <div class="mt-auto panel bg-slate-900/30 p-3">
             <div class="text-[9px] text-slate-500 mb-2 uppercase">Reasoning Log</div>
-            <div id="reasons" class="text-[9px] leading-relaxed text-slate-400 space-y-1"></div>
+            <div id="reasons" class="text-[9px] leading-relaxed text-slate-400"></div>
         </div>
     </div>
 
@@ -73,20 +71,13 @@
     </div>
 
     <div id="decision-panel" class="panel p-6 flex flex-col items-center justify-between text-center relative overflow-hidden">
-        <div class="w-full text-left">
-            <span class="text-[10px] font-black text-slate-700 uppercase tracking-tighter">Final Verdict</span>
-        </div>
-
-        <div id="main-signal" class="flex flex-col items-center">
+        <div class="w-full text-left"><span class="text-[10px] font-black text-slate-700 uppercase">Final Verdict</span></div>
+        <div id="main-signal">
             <div id="signal-text" class="text-slate-800 font-black text-7xl italic">WAIT</div>
             <div id="signal-sub" class="text-[10px] text-slate-600 mt-4 uppercase font-bold tracking-widest">Market Neutral</div>
         </div>
-
         <div class="w-full space-y-4">
-            <div class="flex justify-between items-end">
-                <span class="text-[10px] text-slate-600 font-bold uppercase">MACD Pulse</span>
-                <div id="macd-val" class="text-xs font-bold text-slate-400">0.00</div>
-            </div>
+            <div id="macd-val" class="text-[10px] font-bold text-slate-500 text-right">0.00</div>
             <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
                 <div id="conf-bar" class="h-full bg-blue-600 transition-all duration-500" style="width: 0%"></div>
             </div>
@@ -98,13 +89,12 @@
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
 
         function playSignalSound(freq) {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
             osc.connect(gain); gain.connect(ctx.destination);
             osc.type = 'sine'; osc.frequency.setValueAtTime(freq, ctx.currentTime);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-            osc.start(); osc.stop(ctx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.05, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            osc.start(); osc.stop(ctx.currentTime + 0.3);
         }
 
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
@@ -123,60 +113,52 @@
             currentCandle = history[history.length-1];
         }
 
-        // --- ИНДИКАТОРЫ ---
         function getEMA(data, period) {
-            let k = 2 / (period + 1);
-            let ema = data[0];
+            let k = 2 / (period + 1); let ema = data[0];
             for (let i = 1; i < data.length; i++) ema = data[i] * k + ema * (1 - k);
             return ema;
         }
 
-        function analyzePatterns(candles) {
-            const c = candles.slice(-1)[0];
-            const body = Math.abs(c.open - c.close);
-            const range = c.high - c.low;
-            if (body / range < 0.1) return "DOJI";
-            if (c.close > c.open && (c.high - c.close) < body * 0.2 && (c.open - c.low) > body * 2) return "HAMMER";
-            return "NORMAL";
-        }
-
         function updateBrain() {
-            if (history.length < 30) return;
+            if (history.length < 30 || STRIKE === 0) return;
             const closes = history.map(h => h.close);
             const ema9 = getEMA(closes, 9);
             const ema21 = getEMA(closes, 21);
-            const pattern = analyzePatterns(history);
             const delta = lastBTC - STRIKE;
+            const absDelta = Math.abs(delta);
             
+            // Логика Distance
+            const distEl = document.getElementById('dist-val');
+            const distStat = document.getElementById('dist-status');
+            distEl.innerText = absDelta.toFixed(2);
+            if (absDelta < 30) {
+                distEl.className = "text-2xl font-black tabular-nums dist-danger";
+                distStat.innerText = "CRITICAL PROXIMITY";
+            } else {
+                distEl.className = "text-2xl font-black tabular-nums text-indigo-400";
+                distStat.innerText = delta > 0 ? "ABOVE STRIKE" : "BELOW STRIKE";
+            }
+
             let score = 0;
-            let log = [];
+            if (ema9 > ema21) { score += 20; document.getElementById('ema-status').className = "text-xs font-bold text-green-500"; document.getElementById('ema-status').innerText = "UP TREND"; }
+            else { score += 5; document.getElementById('ema-status').className = "text-xs font-bold text-red-500"; document.getElementById('ema-status').innerText = "DOWN TREND"; }
 
-            // EMA Logic
-            if (ema9 > ema21) { score += 20; document.getElementById('ema-status').className = "text-xs font-bold text-green-500"; document.getElementById('ema-status').innerText = "UP TREND (9>21)"; }
-            else { score += 5; document.getElementById('ema-status').className = "text-xs font-bold text-red-500"; document.getElementById('ema-status').innerText = "DOWN TREND (9<21)"; }
-
-            // Pattern Logic
-            document.getElementById('pattern-status').innerText = pattern;
-            if (pattern === "HAMMER") { score += 25; log.push("• Hammer found (Bullish)"); }
-
-            // Confidence & Signal
-            const finalScore = Math.min(score + (Math.abs(delta) > 50 ? 30 : 10), 99);
+            const finalScore = Math.min(score + (absDelta > 60 ? 40 : 15), 98);
             document.getElementById('conf-val').innerText = finalScore + "%";
             document.getElementById('conf-bar').style.width = finalScore + "%";
             
             const sigText = document.getElementById('signal-text');
-            const logEl = document.getElementById('reasons');
-            
-            if (finalScore > 70) {
+            const now = new Date();
+            const isClosing = (14 - (now.getMinutes() % 15)) < 2;
+
+            if (finalScore > 65 && isClosing) {
                 const side = delta > 0 ? 'DOWN' : 'UP';
                 sigText.innerText = side;
                 sigText.className = side === 'UP' ? 'signal-up font-black text-7xl italic' : 'signal-down font-black text-7xl italic';
-                if (side === 'UP') playSignalSound(880); else playSignalSound(220);
-                logEl.innerHTML = log.join('<br>');
+                if (now.getSeconds() % 5 === 0) playSignalSound(side === 'UP' ? 880 : 220);
             } else {
                 sigText.innerText = "WAIT";
                 sigText.className = "text-slate-800 font-black text-7xl italic";
-                logEl.innerText = "Scanning for confluence...";
             }
         }
 
