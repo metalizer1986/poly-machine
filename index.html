@@ -2,101 +2,105 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL ALPHA V15.1 | FIXED</title>
+    <title>TERMINAL ALPHA V15.2 | LIVE FORCE</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
     <style>
         body { background: #010204; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
         .panel { background: #080a0f; border: 1px solid #1e293b; border-radius: 12px; }
-        .value-good { color: #00ffad; }
-        .value-bad { color: #f87171; }
-        .alert-active { border-color: #3b82f6 !important; box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); }
-        #tape div { border-bottom: 1px solid rgba(30, 41, 59, 0.5); padding: 4px 0; }
+        #tape div { border-bottom: 1px solid rgba(30, 41, 59, 0.3); padding: 4px 0; }
+        .alert-active { border-color: #3b82f6 !important; box-shadow: 0 0 30px rgba(59, 130, 246, 0.15); }
     </style>
 </head>
-<body class="h-screen p-4 grid grid-cols-[280px_1fr_380px] gap-4">
+<body class="h-screen p-4 grid grid-cols-[260px_1fr_360px] gap-4">
 
-    <div class="panel p-5 flex flex-col overflow-hidden">
-        <div class="text-[10px] text-blue-400 font-black mb-4 border-b border-slate-800 pb-2 tracking-widest">MARKET PULSE</div>
+    <div class="panel p-4 flex flex-col overflow-hidden">
+        <div class="text-[10px] text-blue-500 font-black mb-3 border-b border-slate-800 pb-2">LIVE TICKER</div>
         <div id="tape" class="flex-1 overflow-y-auto space-y-1 text-[10px] tabular-nums scrollbar-hide"></div>
     </div>
 
     <div class="flex flex-col gap-4">
         <div class="grid grid-cols-4 gap-4">
             <div class="panel p-4">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">BTC Price</div>
+                <div class="text-[9px] text-slate-500 uppercase font-bold">BTC Spot</div>
                 <div id="price" class="text-2xl font-black text-white tabular-nums">0.00</div>
             </div>
-            <div class="panel p-4 border-r-2 border-blue-900/40">
-                <div class="text-[9px] text-slate-500 uppercase font-bold text-blue-400">Target Strike</div>
-                <input id="strike-manual" type="number" step="0.01" class="w-full bg-transparent text-2xl font-black text-red-500 outline-none" placeholder="SET STRIKE">
+            <div class="panel p-4 border-r-2 border-blue-500/30">
+                <div class="text-[9px] text-slate-500 uppercase font-bold">Strike Price</div>
+                <input id="strike-manual" type="number" step="0.01" class="w-full bg-transparent text-2xl font-black text-red-500 outline-none" placeholder="---">
             </div>
             <div class="panel p-4">
                 <div class="text-[9px] text-slate-500 uppercase font-bold">RSI (14)</div>
                 <div id="rsi-val" class="text-2xl font-black text-purple-400">--</div>
             </div>
             <div class="panel p-4">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">Value Rating</div>
-                <div id="value-status" class="text-lg font-black text-slate-600 uppercase">CALC...</div>
+                <div class="text-[9px] text-slate-500 uppercase font-bold">Value</div>
+                <div id="value-status" class="text-lg font-black text-slate-600">WAIT</div>
             </div>
         </div>
-        <div class="panel flex-1 relative overflow-hidden" id="chart-box"><div id="chart" class="absolute inset-0"></div></div>
+        <div class="panel flex-1 relative overflow-hidden" id="chart-box">
+            <div id="chart" class="absolute inset-0"></div>
+        </div>
     </div>
 
-    <div id="signal-card" class="panel p-8 flex flex-col relative transition-all duration-500">
+    <div id="signal-card" class="panel p-6 flex flex-col transition-all duration-300">
         <div class="flex justify-between items-center mb-6">
-            <span class="text-[10px] font-bold text-slate-600 uppercase italic">Logic V15.1 Stable</span>
-            <div id="timer" class="text-3xl font-black tracking-tighter italic text-slate-500">00:00</div>
+            <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest italic">V15.2 Sniper</span>
+            <div id="timer" class="text-3xl font-black tracking-tighter text-slate-500 italic">00:00</div>
         </div>
-
         <div id="decision" class="flex-1 flex flex-col justify-center items-center text-center">
-            <div class="text-slate-800 font-bold uppercase tracking-[0.2em] animate-pulse">Waiting for Data</div>
+            <div class="text-slate-800 font-bold uppercase tracking-[0.2em] animate-pulse">Syncing...</div>
         </div>
-
-        <div class="mt-auto space-y-6 pt-6 border-t border-slate-800/40">
+        <div class="mt-auto pt-6 border-t border-slate-800/40 space-y-4">
             <div class="flex justify-between items-center">
-                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Conf. Score</span>
-                <span id="conf-val" class="text-3xl font-black text-slate-700">0%</span>
+                <span class="text-[9px] text-slate-600 font-black uppercase">Conf. Score</span>
+                <span id="conf-val" class="text-2xl font-black text-slate-700">0%</span>
             </div>
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center bg-slate-900/40 p-3 rounded-lg">
                 <div class="flex flex-col">
-                    <span class="text-[9px] text-slate-600 uppercase font-black">Contract Est.</span>
-                    <span id="market-price" class="text-xl font-black text-blue-500">$0.50</span>
+                    <span class="text-[9px] text-slate-500 uppercase font-black">ROI</span>
+                    <span id="roi-val" class="text-lg font-black text-green-500">--%</span>
                 </div>
-                <div class="text-right">
-                    <span class="text-[9px] text-slate-600 uppercase font-black">ROI</span>
-                    <div id="roi-val" class="text-xl font-black text-green-500">--%</div>
+                <div class="text-right flex flex-col">
+                    <span class="text-[9px] text-slate-500 uppercase font-black">Contract</span>
+                    <span id="market-price" class="text-lg font-black text-blue-500">$0.50</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let STRIKE = 0, lastBTC = 0, history = [], nextRefresh = 60;
+        let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null;
         const alertSnd = new Audio('https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3');
         alertSnd.volume = 0.3;
 
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
-            layout: { background: { color: '#080a0f' }, textColor: '#475569' },
+            layout: { background: { color: '#080a0f' }, textColor: '#64748b' },
             grid: { vertLines: { color: '#111827' }, horzLines: { color: '#111827' } },
-            rightPriceScale: { borderVisible: false },
-            timeScale: { borderVisible: false }
+            timeScale: { timeVisible: true, secondsVisible: false, borderVisible: false },
+            rightPriceScale: { borderVisible: false }
         });
         const series = chart.addCandlestickSeries({ upColor: '#00ffad', downColor: '#ff3b69', borderVisible: false });
 
-        async function fullRefresh() {
+        async function loadHistory() {
             try {
                 const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
                 const data = await r.json();
-                history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
+                history = data.map(d => ({
+                    time: d[0] / 1000,
+                    open: parseFloat(d[1]), high: parseFloat(d[2]),
+                    low: parseFloat(d[3]), close: parseFloat(d[4])
+                }));
                 series.setData(history);
+                currentCandle = history[history.length - 1];
                 chart.timeScale().fitContent();
-            } catch(e) {}
+            } catch(e) { console.error("History fail", e); }
         }
 
-        function calculateRSI(closes, period = 14) {
-            if (closes.length < period + 1) return 50;
+        function calculateRSI(period = 14) {
+            if (history.length < period + 1) return 50;
+            const closes = history.map(c => c.close);
             let up = 0, down = 0;
             for (let i = closes.length - period; i < closes.length; i++) {
                 let diff = closes[i] - closes[i-1];
@@ -105,30 +109,21 @@
             return 100 - (100 / (1 + (up / (down || 1))));
         }
 
-        function processLogic(contractPrice = 0.5) {
-            if (STRIKE <= 0 || history.length < 20) return;
-            const rsi = calculateRSI(history.map(c => c.close));
+        function updateUI() {
+            if (STRIKE <= 0) return;
+            const rsi = calculateRSI();
             document.getElementById('rsi-val').innerText = rsi.toFixed(1);
             
+            const delta = lastBTC - STRIKE;
             const now = new Date();
             const remM = 14 - (now.getMinutes() % 15);
-            const delta = lastBTC - STRIKE;
             
             let score = 0;
             if (Math.abs(delta) > 50) score += 40;
             if (rsi > 70 || rsi < 30) score += 40;
 
-            const roiVal = (1 / contractPrice - 1) * 100;
-            document.getElementById('roi-val').innerText = `+${roiVal.toFixed(0)}%`;
-            document.getElementById('market-price').innerText = `$${contractPrice.toFixed(2)}`;
-
-            const vStatusEl = document.getElementById('value-status');
-            if (contractPrice > 0.82) { vStatusEl.innerText = "OVERPRICED"; vStatusEl.className = "text-lg font-black value-bad"; }
-            else if (contractPrice < 0.50 && score > 40) { vStatusEl.innerText = "UNDERVALUED"; vStatusEl.className = "text-lg font-black text-blue-400"; }
-            else { vStatusEl.innerText = "NEUTRAL"; vStatusEl.className = "text-lg font-black text-slate-600"; }
-
-            const decEl = document.getElementById('decision');
             document.getElementById('conf-val').innerText = score + "%";
+            const decEl = document.getElementById('decision');
             const card = document.getElementById('signal-card');
 
             if (score >= 70 && remM >= 3) {
@@ -136,7 +131,7 @@
                 decEl.innerHTML = `<div class="${delta > 0 ? 'text-red-500' : 'text-green-500'} font-black text-8xl">${delta > 0 ? 'DOWN' : 'UP'}</div>`;
             } else {
                 card.classList.remove('alert-active');
-                decEl.innerHTML = `<div class="text-slate-800 font-bold uppercase italic text-sm">Waiting for Entry</div>`;
+                decEl.innerHTML = `<div class="text-slate-800 font-bold uppercase tracking-widest text-sm">Monitoring...</div>`;
             }
         }
 
@@ -144,37 +139,43 @@
         ws.onmessage = e => {
             const d = JSON.parse(e.data);
             lastBTC = parseFloat(d.p);
+            const time = Math.floor(d.E / 60000) * 60;
+            
             document.getElementById('price').innerText = lastBTC.toLocaleString();
-            series.update({ time: Math.floor(d.E / 60000) * 60, close: lastBTC });
-            
-            // Pulse Update
+
+            // Обновление графика В РЕАЛЬНОМ ВРЕМЕНИ
+            if (!currentCandle || time > currentCandle.time) {
+                currentCandle = { time, open: lastBTC, high: lastBTC, low: lastBTC, close: lastBTC };
+                history.push(currentCandle);
+                if(history.length > 150) history.shift();
+            } else {
+                currentCandle.close = lastBTC;
+                currentCandle.high = Math.max(currentCandle.high, lastBTC);
+                currentCandle.low = Math.min(currentCandle.low, lastBTC);
+            }
+            series.update(currentCandle);
+
+            // Обновление ленты (Пульс)
             const tape = document.getElementById('tape');
-            const color = lastBTC > STRIKE ? 'text-green-500' : 'text-red-500';
-            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between"><span>${new Date().toLocaleTimeString()}</span><span class="${color} font-bold">${lastBTC.toFixed(1)}</span></div>`);
-            if(tape.children.length > 40) tape.lastChild.remove();
-            
-            processLogic();
+            tape.insertAdjacentHTML('afterbegin', `<div class="flex justify-between"><span>${new Date().toLocaleTimeString()}</span><span class="${lastBTC > STRIKE ? 'text-green-500' : 'text-red-500'} font-bold">${lastBTC.toFixed(1)}</span></div>`);
+            if(tape.children.length > 35) tape.lastChild.remove();
+
+            updateUI();
         };
 
         const strikeInput = document.getElementById('strike-manual');
         strikeInput.addEventListener('input', (e) => {
             STRIKE = parseFloat(e.target.value);
-            strikeInput.classList.add('bg-blue-900/20'); // Подсветка ручного ввода
+            strikeInput.classList.add('bg-blue-900/20');
         });
 
         async function syncMarket() {
-            // Если ты вводишь текст прямо сейчас — не перебиваем
             if (document.activeElement === strikeInput) return;
-
             try {
                 const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://api.predict.fun/v1/markets/btc-usd-up-down-2026-03-09-02-15')}&_=${Date.now()}`;
                 const r = await fetch(proxy); const d = await r.json();
                 const s = parseFloat(d.strike_price || d.line || d.price_to_beat);
-                if (s > 10000) {
-                    STRIKE = s;
-                    strikeInput.value = STRIKE;
-                    strikeInput.classList.remove('bg-blue-900/20');
-                }
+                if (s > 1000) { STRIKE = s; strikeInput.value = STRIKE; strikeInput.classList.remove('bg-blue-900/20'); }
             } catch(e) {}
         }
 
@@ -185,9 +186,9 @@
             document.getElementById('timer').innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
         }, 1000);
 
-        fullRefresh();
-        setInterval(syncMarket, 8000);
-        syncMarket();
+        loadHistory();
+        setInterval(syncMarket, 10000);
+        new ResizeObserver(() => chart.applyOptions({ width: document.getElementById('chart-box').clientWidth, height: document.getElementById('chart-box').clientHeight })).observe(document.getElementById('chart-box'));
     </script>
 </body>
 </html>
