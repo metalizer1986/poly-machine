@@ -2,110 +2,102 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL V17.4 | AGGRESSIVE MODE</title>
+    <title>TERMINAL V17.6 | PREDICT FAMA SYNC</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { background: #02040a; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
         .panel { background: #0b0e14; border: 1px solid #1e293b; border-radius: 8px; }
-        .stat-card { border-left: 3px solid #334155; padding-left: 10px; }
-        .signal-up { color: #10b981; text-shadow: 0 0 20px rgba(16,185,129,0.6); animation: flash 1s infinite; }
-        .signal-down { color: #ef4444; text-shadow: 0 0 20px rgba(239,68,68,0.6); animation: flash 1s infinite; }
-        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-        .dist-danger { color: #ff3b69; animation: pulse 1s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .signal-up { color: #10b981; text-shadow: 0 0 25px rgba(16,185,129,0.7); animation: glow 1s infinite alternate; }
+        .signal-down { color: #ef4444; text-shadow: 0 0 25px rgba(239,68,68,0.7); animation: glow 1s infinite alternate; }
+        @keyframes glow { from { opacity: 0.8; } to { opacity: 1; } }
+        .auto-tag { background: #1e1b4b; color: #818cf8; border: 1px solid #3730a3; }
     </style>
 </head>
-<body class="h-screen p-3 grid grid-cols-[300px_1fr_320px] gap-3">
+<body class="h-screen p-3 grid grid-cols-[310px_1fr_320px] gap-3">
 
     <div class="panel p-4 flex flex-col gap-4 overflow-y-auto">
         <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
-            <span class="text-[10px] font-bold text-red-500 uppercase tracking-widest italic">V17.4 AGGRESSIVE</span>
-            <span class="text-[10px] text-yellow-400 font-bold underline">LIVE SIGNALS</span>
+            <span class="text-[10px] font-black text-indigo-400 uppercase tracking-widest italic">Predict Sync V17.6</span>
+            <div class="auto-tag text-[8px] px-2 py-0.5 rounded font-bold uppercase animate-pulse">Live API</div>
         </div>
         
         <div class="space-y-4">
-            <div class="panel bg-slate-900/50 p-3 border-red-500/30">
-                <div class="text-[9px] text-slate-500 uppercase font-black mb-1">Strike Distance</div>
-                <div id="dist-val" class="text-2xl font-black tabular-nums text-red-400">0.00</div>
-                <div id="dist-status" class="text-[8px] font-bold uppercase mt-1 text-slate-500 italic">WAITING...</div>
+            <div class="panel bg-slate-900/50 p-4 border-indigo-500/30">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-[9px] text-slate-500 uppercase font-black">Sync Midpoint</span>
+                    <span id="sync-status" class="text-[8px] text-green-500 font-bold tracking-tighter">● ACTIVE</span>
+                </div>
+                <div id="dist-val" class="text-3xl font-black tabular-nums text-white">0.00</div>
+                <div id="dist-status" class="text-[9px] font-bold uppercase mt-1 text-slate-400 italic">Distance to Strike</div>
             </div>
 
-            <div class="stat-card">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">RSI (14)</div>
-                <div id="rsi-status" class="text-xs font-bold text-slate-400">--</div>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="panel p-2 text-center border-slate-800">
+                    <div class="text-[8px] text-slate-500 uppercase">RSI (14)</div>
+                    <div id="rsi-val" class="text-sm font-bold">--</div>
+                </div>
+                <div class="panel p-2 text-center border-slate-800">
+                    <div class="text-[8px] text-slate-500 uppercase">Volatility</div>
+                    <div id="atr-val" class="text-sm font-bold">--</div>
+                </div>
             </div>
 
-            <div class="stat-card">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">ATR Volatility</div>
-                <div id="atr-val" class="text-xs font-bold text-slate-400">0.00</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="text-[9px] text-slate-500 uppercase font-bold">Trend (EMA)</div>
-                <div id="ema-status" class="text-xs font-bold text-slate-400">...</div>
+            <div class="panel p-3 bg-black/40 border-slate-800">
+                <div class="text-[9px] text-slate-500 uppercase mb-2">Trend Analysis</div>
+                <div id="ema-status" class="text-xs font-bold text-slate-400 italic italic">Calculating...</div>
             </div>
         </div>
 
-        <div class="mt-auto panel bg-red-900/10 p-3 text-[9px] text-red-400/80 leading-tight" id="reasons">
-            Aggressive mode active. Signal restriction removed.
+        <div class="mt-auto panel bg-indigo-950/20 p-3 text-[9px] text-indigo-300/80 leading-tight">
+            <b>INFO:</b> Страйк обновляется автоматически каждые 15 минут на основе Midpoint текущей цены.
         </div>
     </div>
 
     <div class="flex flex-col gap-3">
-        <div class="grid grid-cols-4 gap-3 text-center">
-            <div class="panel p-3">
-                <div class="text-[8px] text-slate-500 font-bold uppercase">BTC Spot</div>
+        <div class="grid grid-cols-4 gap-3">
+            <div class="panel p-3 text-center">
+                <div class="text-[8px] text-slate-500 font-bold uppercase">BTC Price</div>
                 <div id="price" class="text-xl font-black text-white tabular-nums">0.00</div>
             </div>
-            <div class="panel p-3 border-r-4 border-red-600">
-                <div class="text-[8px] text-slate-500 font-bold uppercase italic">Strike Price</div>
-                <input id="strike-manual" type="number" class="w-full bg-transparent text-xl font-black text-red-500 outline-none text-center" value="0">
+            <div class="panel p-3 text-center border-b-2 border-indigo-500">
+                <div class="text-[8px] text-slate-500 font-bold uppercase italic">Auto-Strike</div>
+                <div id="strike-display" class="text-xl font-black text-indigo-400 tabular-nums">0.00</div>
             </div>
-            <div class="panel p-3">
-                <div class="text-[8px] text-slate-500 font-bold uppercase">Power</div>
+            <div class="panel p-3 text-center">
+                <div class="text-[8px] text-slate-500 font-bold uppercase">Confidence</div>
                 <div id="conf-val" class="text-xl font-black text-blue-500">0%</div>
             </div>
-            <div class="panel p-3">
-                <div class="text-[8px] text-slate-500 font-bold uppercase">Cycle</div>
+            <div class="panel p-3 text-center">
+                <div class="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Expiration</div>
                 <div id="timer" class="text-xl font-black text-slate-400 italic">00:00</div>
             </div>
         </div>
         <div class="panel flex-1 relative overflow-hidden" id="chart-box"><div id="chart" class="absolute inset-0"></div></div>
     </div>
 
-    <div id="decision-panel" class="panel p-6 flex flex-col items-center justify-between text-center relative overflow-hidden">
-        <div class="w-full text-left uppercase text-[10px] font-black text-red-900">Final Decision</div>
+    <div id="decision-panel" class="panel p-6 flex flex-col items-center justify-between text-center border-l-4 border-indigo-900">
+        <div class="w-full text-left uppercase text-[10px] font-black text-slate-600 tracking-widest">Decision Engine</div>
         
-        <div id="main-signal" class="z-10">
-            <div id="signal-text" class="text-slate-800 font-black text-8xl italic tracking-tighter transition-all duration-300">WAIT</div>
-            <div id="signal-sub" class="text-[10px] text-slate-400 mt-4 uppercase font-bold tracking-widest">Scanning Market Impulse</div>
+        <div id="main-signal">
+            <div id="signal-text" class="text-slate-800 font-black text-8xl italic tracking-tighter">WAIT</div>
+            <div id="signal-sub" class="text-[10px] text-slate-500 mt-4 uppercase font-bold tracking-widest">Scanning Midpoint</div>
         </div>
 
-        <div class="w-full space-y-4">
-            <div class="flex justify-between text-[9px] font-black text-slate-500 uppercase">
-                <span>Confidence Meter</span>
+        <div class="w-full">
+            <div class="flex justify-between text-[9px] font-black text-slate-500 uppercase mb-2">
+                <span>Power Meter</span>
                 <span id="rsi-numeric">RSI: --</span>
             </div>
-            <div class="h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                <div id="conf-bar" class="h-full bg-gradient-to-r from-blue-600 to-indigo-400 transition-all duration-500" style="width: 0%"></div>
+            <div class="h-3 bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800">
+                <div id="conf-bar" class="h-full bg-gradient-to-r from-blue-600 to-indigo-400 transition-all duration-700" style="width: 0%"></div>
             </div>
         </div>
     </div>
 
     <script>
         let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null, strikeLine = null;
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-        function beep(f) {
-            const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
-            o.connect(g); g.connect(audioCtx.destination);
-            o.frequency.value = f; g.gain.value = 0.08;
-            o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.4);
-            o.stop(audioCtx.currentTime + 0.4);
-        }
-
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             layout: { background: { color: '#0b0e14' }, textColor: '#64748b' },
             grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
@@ -114,12 +106,26 @@
         });
         const series = chart.addCandlestickSeries({ upColor: '#10b981', downColor: '#ef4444', borderVisible: false });
 
+        // ФУНКЦИЯ АВТО-СТРАЙКА (Midpoint Logic)
+        function syncMidpoint(price) {
+            // Округляем до целого или .5 как это делает Predict
+            const rounded = Math.round(price);
+            STRIKE = rounded;
+            document.getElementById('strike-display').innerText = rounded.toFixed(2);
+            if (strikeLine) series.removePriceLine(strikeLine);
+            strikeLine = series.createPriceLine({ 
+                price: STRIKE, color: '#6366f1', lineWidth: 2, lineStyle: 2, 
+                title: 'PREDICT MIDPOINT', axisLabelVisible: true 
+            });
+        }
+
         async function init() {
             const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
             const data = await r.json();
             history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
             series.setData(history);
             currentCandle = history[history.length-1];
+            syncMidpoint(currentCandle.close);
         }
 
         function getEMA(p) {
@@ -134,61 +140,40 @@
             if(c.length < p) return 50;
             let up=0, dn=0;
             for(let i=c.length-p; i<c.length; i++) {
-                let diff = c[i] - c[i-1];
+                let diff = c[i]-c[i-1];
                 if(diff > 0) up += diff; else dn -= diff;
             }
             return 100 - (100 / (1 + (up/dn || 1)));
         }
 
-        function getATR(p=14) {
-            const slice = history.slice(-p);
-            let sum = 0; slice.forEach(c => sum += (c.high - c.low));
-            return sum / p;
-        }
-
         function update() {
-            if (history.length < 30 || STRIKE === 0) return;
+            if (history.length < 30) return;
             const delta = lastBTC - STRIKE;
-            const ema9 = getEMA(9), ema21 = getEMA(21);
-            const rsi = getRSI();
-            const atr = getATR();
+            const ema9 = getEMA(9), ema21 = getEMA(21), rsi = getRSI();
             
-            // UI Stats
             document.getElementById('dist-val').innerText = Math.abs(delta).toFixed(2);
-            document.getElementById('dist-status').innerText = delta > 0 ? "ABOVE STRIKE" : "BELOW STRIKE";
-            document.getElementById('rsi-status').innerText = rsi > 70 ? "OVERBOUGHT" : rsi < 30 ? "OVERSOLD" : "NEUTRAL";
-            document.getElementById('rsi-status').className = rsi > 70 ? "text-xs font-bold text-red-500" : rsi < 30 ? "text-xs font-bold text-green-500" : "text-xs font-bold text-slate-400";
-            document.getElementById('rsi-numeric').innerText = "RSI: " + rsi.toFixed(1);
-            document.getElementById('atr-val').innerText = atr.toFixed(2);
-            document.getElementById('ema-status').innerText = ema9 > ema21 ? "UP TREND" : "DOWN TREND";
+            document.getElementById('rsi-val').innerText = rsi.toFixed(1);
+            document.getElementById('ema-status').innerText = ema9 > ema21 ? "BULLISH TREND" : "BEARISH TREND";
             document.getElementById('ema-status').className = ema9 > ema21 ? "text-xs font-bold text-green-500" : "text-xs font-bold text-red-500";
 
-            // AGGRESSIVE BRAIN
-            let score = 10;
-            if (ema9 > ema21 && delta < 0) score += 35; // Бычий тренд, цена под страйком
-            if (ema9 < ema21 && delta > 0) score += 35; // Медвежий тренд, цена над страйком
-            if (delta < 0 && rsi < 45) score += 20; // RSI в зоне покупки
-            if (delta > 0 && rsi > 55) score += 20; // RSI в зоне продажи
-            if (Math.abs(delta) > (atr * 0.5)) score += 15; // Дистанция больше половины шума
+            let score = 15;
+            if (ema9 > ema21 && delta < 0) score += 35;
+            if (ema9 < ema21 && delta > 0) score += 35;
+            if (delta < 0 && rsi < 45) score += 25;
+            if (delta > 0 && rsi > 55) score += 25;
 
             const conf = Math.max(5, Math.min(score, 99));
             document.getElementById('conf-val').innerText = conf + "%";
             document.getElementById('conf-bar').style.width = conf + "%";
 
-            // SIGNAL OUTPUT (No time limit)
             const sigText = document.getElementById('signal-text');
-            const sigSub = document.getElementById('signal-sub');
-            
-            if (conf >= 50) {
+            if (conf >= 55) {
                 const side = delta > 0 ? 'DOWN' : 'UP';
                 sigText.innerText = side;
                 sigText.className = (side === 'UP' ? 'signal-up' : 'signal-down') + ' font-black text-8xl italic tracking-tighter';
-                sigSub.innerText = (side === 'UP' ? 'Bullish Push Detected' : 'Bearish Pressure Detected');
-                if (Math.random() > 0.95) beep(side === 'UP' ? 900 : 300); // Редкие бипы для фона
             } else {
                 sigText.innerText = "WAIT";
                 sigText.className = "text-slate-800 font-black text-8xl italic tracking-tighter";
-                sigSub.innerText = "Scanning Market Impulse";
             }
         }
 
@@ -197,6 +182,13 @@
             const d = JSON.parse(e.data); lastBTC = parseFloat(d.p);
             document.getElementById('price').innerText = lastBTC.toLocaleString();
             const time = Math.floor(d.E/60000)*60;
+            
+            // АВТО-ОБНОВЛЕНИЕ СТРАЙКА ПО ЦИКЛУ 15 МИНУТ
+            const now = new Date();
+            if (now.getMinutes() % 15 === 0 && now.getSeconds() === 0) {
+                syncMidpoint(lastBTC);
+            }
+
             if(!currentCandle || time > currentCandle.time) {
                 currentCandle = { time, open: lastBTC, high: lastBTC, low: lastBTC, close: lastBTC };
                 history.push(currentCandle);
@@ -212,12 +204,6 @@
             const remS = 59 - now.getSeconds();
             document.getElementById('timer').innerText = `${remM}:${remS < 10 ? '0' : ''}${remS}`;
         }, 1000);
-
-        document.getElementById('strike-manual').addEventListener('input', (e) => {
-            STRIKE = parseFloat(e.target.value);
-            if (strikeLine) series.removePriceLine(strikeLine);
-            strikeLine = series.createPriceLine({ price: STRIKE, color: '#ff004c', lineWidth: 2, lineStyle: 0, title: 'STRIKE' });
-        });
 
         init();
         new ResizeObserver(() => chart.applyOptions({ width: document.getElementById('chart-box').clientWidth, height: document.getElementById('chart-box').clientHeight })).observe(document.getElementById('chart-box'));
