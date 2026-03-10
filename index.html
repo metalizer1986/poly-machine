@@ -82,7 +82,7 @@
 
     <script>
         const TG_TOKEN = "8624536975:AAE-2JPl3JSxQ247jPxm9P0QFN6_8H7Z31w";
-        const CHAT_ID = "8624536975"; 
+        const CHAT_ID = "143405349";
         let lastSentCycle = -1, STRIKE = 0, lastBTC = 0, history = [], currentCandle = null;
         let strikeLine = null, volumeSeries = null, lastVolAlertTime = 0;
 
@@ -97,7 +97,6 @@
         volumeSeries = chart.addHistogramSeries({ color: '#38bdf8', priceFormat: { type: 'volume' }, priceScaleId: 'volume' });
         chart.priceScale('volume').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
 
-        // Улучшенные звуки
         const AudioSfx = {
             ctx: null,
             init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
@@ -149,7 +148,6 @@
             const ema21 = calcEMA(history.map(h => h.close).slice(-21), 21);
             const macd = calcMACD();
 
-            // VOLUME CHECK
             const avgVol = history.slice(-20).reduce((a,b) => a + b.volume, 0) / 20;
             const isWhale = currentCandle.volume > (avgVol * 3);
             
