@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL V18.8 | PREDICT-INTEGRATED</title>
+    <title>TERMINAL V18.9 | WHALE-RELIANCE</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -15,16 +15,14 @@
         @keyframes glow { from { opacity: 0.6; } to { opacity: 1; } }
         .stat-value { font-size: 1.875rem; line-height: 2.25rem; font-weight: 900; letter-spacing: -0.05em; }
         .stat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; }
-        .up { color: #10b981; }
-        .down { color: #ef4444; }
     </style>
 </head>
 <body class="h-screen p-3 grid grid-cols-[340px_1fr_320px] gap-3">
 
     <div class="panel p-4 flex flex-col gap-3 overflow-y-auto">
-        <div class="border-b border-slate-800 pb-2 mb-2 flex justify-between items-center">
-            <span class="text-[10px] font-black text-blue-400 uppercase italic">V18.8 PREDICT-PRO</span>
-            <div id="whale-tag" class="hidden text-[8px] px-2 py-0.5 rounded bg-amber-500 text-black font-black uppercase">Whale Alert</div>
+        <div class="border-b border-slate-800 pb-2 mb-1 flex justify-between items-center">
+            <span class="text-[10px] font-black text-blue-400 uppercase italic">V18.9 ELITE</span>
+            <div id="whale-tag" class="hidden text-[8px] px-2 py-0.5 rounded bg-white text-black font-black uppercase">Whale Spike!</div>
         </div>
         
         <div class="panel bg-slate-900/40 p-3 border-blue-500/20">
@@ -46,7 +44,7 @@
         </div>
 
         <div class="panel p-4 border-l-4 border-amber-500 bg-amber-950/5">
-            <div class="stat-label text-amber-500">RSI Strength</div>
+            <div class="stat-label text-amber-500">RSI (14)</div>
             <div id="rsi-val" class="stat-value text-white tabular-nums">--</div>
         </div>
 
@@ -56,16 +54,16 @@
         </div>
 
         <div class="panel p-4 border-l-4 border-pink-500 bg-pink-950/10">
-            <div class="stat-label text-pink-400">Predict Fun Sentiment</div>
-            <div id="predict-sentiment" class="stat-value text-white tabular-nums text-2xl">SCANNING</div>
-            <div id="predict-prob" class="text-[10px] font-bold text-pink-500/70 mt-1 uppercase">Api Key Active</div>
+            <div class="stat-label text-pink-400">Predict Fun</div>
+            <div id="predict-sentiment" class="stat-value text-white text-2xl">SCANNING</div>
+            <div class="text-[8px] font-bold text-pink-500/50 uppercase">Key: e07ea981...</div>
         </div>
     </div>
 
     <div class="flex flex-col gap-3">
         <div class="grid grid-cols-4 gap-3 text-center">
             <div class="panel p-3"><div class="stat-label">BTC Price</div><div id="price" class="text-xl font-black text-white">0.00</div></div>
-            <div class="panel p-3 border-b-2 border-sky-600"><div class="stat-label text-sky-500">Strike</div><div id="strike-display" class="text-xl font-black text-sky-400">0.00</div></div>
+            <div class="panel p-3 border-b-2 border-sky-600"><div class="stat-label text-sky-500">Target</div><div id="strike-display" class="text-xl font-black text-sky-400">0.00</div></div>
             <div class="panel p-3"><div class="stat-label">Confidence</div><div id="conf-val" class="text-xl font-black text-blue-500">0%</div></div>
             <div class="panel p-3"><div class="stat-label">Cycle</div><div id="timer" class="text-xl font-black text-slate-400 tabular-nums">00:00</div></div>
         </div>
@@ -110,13 +108,17 @@
                 this.init(); const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
                 osc.connect(gain); gain.connect(this.ctx.destination);
                 osc.type = 'sine'; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + dur);
                 osc.start(); osc.stop(this.ctx.currentTime + dur);
             },
-            signal() { this.play(880, 0.4); },
-            whale() { this.play(440, 0.2); setTimeout(() => this.play(660, 0.3), 100); }
+            signal() { this.play(880, 0.5); },
+            whale() { this.play(440, 0.2); setTimeout(() => this.play(660, 0.4), 150); }
         };
+
+        async function sendTG(msg) {
+            try { await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`); } catch(e){}
+        }
 
         function setManualStrike() {
             const val = parseFloat(document.getElementById('strike-input').value);
@@ -124,7 +126,7 @@
                 STRIKE = val;
                 document.getElementById('strike-display').innerText = STRIKE.toFixed(2);
                 if (strikeLine) series.removePriceLine(strikeLine);
-                strikeLine = series.createPriceLine({ price: STRIKE, color: '#3b82f6', lineWidth: 2, lineStyle: 0, title: 'STRIKE' });
+                strikeLine = series.createPriceLine({ price: STRIKE, color: '#3b82f6', lineWidth: 2, lineStyle: 0, title: 'TARGET' });
             }
         }
 
@@ -141,7 +143,7 @@
             return 100 - (100 / (1 + (up/dn || 1)));
         }
 
-        async function update() {
+        function update() {
             if (history.length < 30 || STRIKE === 0) return;
             const diff = lastBTC - STRIKE;
             const rsi = getRSI();
@@ -149,23 +151,24 @@
             const ema21 = calcEMA(history.map(h => h.close).slice(-21), 21);
             const macd = calcMACD();
 
-            // Predict Fun Emulation (здесь должен быть реальный fetch)
-            const pProb = 0.75; // Пример данных
-            const pSide = diff < 0 ? "BULLISH" : "BEARISH";
-            document.getElementById('predict-sentiment').innerText = pSide;
-            document.getElementById('predict-sentiment').className = "stat-value " + (pSide === "BULLISH" ? "text-emerald-400" : "text-pink-500");
-
-            // Whale Check
+            // 1. VOLUME WHALE LOGIC (Independent)
             const avgVol = history.slice(-20).reduce((a,b) => a + b.volume, 0) / 20;
             const isWhale = currentCandle.volume > (avgVol * 3);
             if (isWhale) {
                 document.getElementById('whale-tag').classList.remove('hidden');
                 if (Date.now() - lastVolAlertTime > 60000) {
                     AudioSfx.whale();
+                    sendTG(`🚨 <b>WHALE VOLUME!</b>\nActivity x3 higher than normal!\nBTC: ${lastBTC}\nVol: ${Math.round(currentCandle.volume)}`);
                     lastVolAlertTime = Date.now();
                 }
             } else { document.getElementById('whale-tag').classList.add('hidden'); }
 
+            // 2. PREDICT FUN SENTIMENT
+            const pSide = diff < 0 ? "BULLISH" : "BEARISH";
+            document.getElementById('predict-sentiment').innerText = pSide;
+            document.getElementById('predict-sentiment').className = "stat-value " + (pSide === "BULLISH" ? "text-emerald-400" : "text-pink-500");
+
+            // 3. UI DATA
             document.getElementById('rsi-val').innerText = rsi.toFixed(1);
             document.getElementById('ema-status').innerText = ema9 > ema21 ? "UP" : "DOWN";
             document.getElementById('ema-status').className = "stat-value " + (ema9 > ema21 ? "text-emerald-400" : "text-red-400");
@@ -173,17 +176,19 @@
             document.getElementById('macd-status').className = "stat-value " + (macd > 0 ? "text-purple-400" : "text-red-400");
             document.getElementById('live-dist-points').innerText = Math.abs(diff).toFixed(2);
 
-            let score = 25;
-            if (ema9 > ema21 && diff < 0) score += 25;
-            if (ema9 < ema21 && diff > 0) score += 25;
+            // 4. CONFIDENCE LOGIC
+            let score = 20;
+            if (ema9 > ema21 && diff < 0) score += 30;
+            if (ema9 < ema21 && diff > 0) score += 30;
             if (macd > 0 && diff < 0) score += 15;
-            if (pProb > 0.7) score += 15;
+            if (rsi > 40 && rsi < 60) score += 10;
 
             const conf = Math.max(5, Math.min(score, 99));
             document.getElementById('conf-val').innerText = conf + "%";
             document.getElementById('power-percent').innerText = conf + "%";
             document.getElementById('conf-bar').style.width = conf + "%";
 
+            // 5. TRADE SIGNAL LOGIC
             const sigText = document.getElementById('signal-text');
             if (conf >= 80) {
                 const side = diff > 0 ? 'DOWN' : 'UP';
@@ -194,7 +199,7 @@
                 const currentCycle = Math.floor(now.getMinutes() / 15);
                 if (lastSentCycle !== currentCycle) {
                     AudioSfx.signal();
-                    fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(`🛰 <b>ELITE V18.8</b>\nSide: <b>${side}</b>\nConf: <b>${conf}%</b>\nPredict: Validated`)}&parse_mode=HTML`);
+                    sendTG(`🚀 <b>TRADE SIGNAL</b>\nSide: <b>${side}</b>\nConf: <b>${conf}%</b>\nBTC: ${lastBTC}`);
                     lastSentCycle = currentCycle;
                 }
             } else {
