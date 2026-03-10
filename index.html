@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL V18.2 | SOUND & TREND</title>
+    <title>TERMINAL V18.3 | PRO-TRADER</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -13,60 +13,64 @@
         #signal-text { font-size: clamp(3rem, 10vw, 7rem); line-height: 1; text-align: center; width: 100%; display: block; }
         .glow-text { animation: glow 1s infinite alternate; }
         @keyframes glow { from { opacity: 0.6; } to { opacity: 1; } }
-        .trend-up { color: #10b981; }
-        .trend-down { color: #ef4444; }
+        .up { color: #10b981; }
+        .down { color: #ef4444; }
     </style>
 </head>
 <body class="h-screen p-3 grid grid-cols-[310px_1fr_320px] gap-3">
 
     <div class="panel p-4 flex flex-col gap-4 overflow-y-auto">
         <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
-            <span class="text-[10px] font-black text-blue-400 uppercase italic">V18.2 ULTIMATE</span>
-            <div class="text-[8px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/50 font-bold uppercase">Sound & TG Active</div>
+            <span class="text-[10px] font-black text-blue-400 uppercase italic">V18.3 PRO-TRADER</span>
+            <div class="text-[8px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/50 font-bold uppercase">MACD & BB Active</div>
         </div>
         
         <div class="space-y-4">
-            <div class="panel bg-slate-900/50 p-4 border-blue-500/20">
-                <div class="text-[9px] text-slate-500 uppercase font-black mb-2 italic">Manual Strike</div>
+            <div class="panel bg-slate-900/50 p-3 border-blue-500/20">
+                <div class="text-[9px] text-slate-500 uppercase font-black mb-2 italic">Strike Control</div>
                 <div class="flex gap-2">
                     <input type="number" id="strike-input" class="input-strike w-full p-2 rounded text-lg tabular-nums" placeholder="0.00">
-                    <button onclick="setManualStrike()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 rounded font-bold text-xs">SET</button>
+                    <button onclick="setManualStrike()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 rounded font-bold text-xs uppercase">Set</button>
                 </div>
             </div>
 
             <div class="stat-card p-3 border-l-2 border-blue-800 bg-blue-950/5">
-                <div class="text-[8px] text-blue-600 uppercase font-black mb-1 italic">EMA 9/21 Crossover</div>
-                <div id="ema-status" class="text-sm font-black text-slate-400">CALCULATING...</div>
-                <div id="ema-trend" class="text-[10px] font-bold mt-1 uppercase">Checking Trend</div>
+                <div class="text-[8px] text-blue-600 uppercase font-black mb-1">EMA 9/21 Trend</div>
+                <div id="ema-status" class="text-[11px] font-bold">Scanning...</div>
+            </div>
+
+            <div class="stat-card p-3 border-l-2 border-purple-800 bg-purple-950/5">
+                <div class="text-[8px] text-purple-500 uppercase font-black mb-1">MACD (12, 26, 9)</div>
+                <div id="macd-status" class="text-[11px] font-bold">Waiting...</div>
+            </div>
+
+            <div class="stat-card p-3 border-l-2 border-amber-800 bg-amber-950/5">
+                <div class="text-[8px] text-amber-600 uppercase font-black mb-1">Bollinger Bands</div>
+                <div id="bb-status" class="text-[11px] font-bold">Analyzing...</div>
             </div>
 
             <div class="stat-card p-3 border-l-2 border-slate-800">
                 <div class="text-[8px] text-slate-500 uppercase font-black mb-1">RSI (14)</div>
-                <div id="rsi-val" class="text-lg font-black">--</div>
+                <div id="rsi-val" class="text-lg font-black tabular-nums">--</div>
             </div>
-        </div>
-
-        <div class="mt-auto panel bg-black/40 p-3 border-slate-800">
-            <div class="text-[9px] text-slate-500 font-bold mb-1">TG ID: 8624536975</div>
-            <div class="text-[8px] text-slate-600 uppercase">Click anywhere to enable sound</div>
         </div>
     </div>
 
     <div class="flex flex-col gap-3">
         <div class="grid grid-cols-4 gap-3 text-center">
-            <div class="panel p-3"><div class="text-[8px] text-slate-500 font-bold uppercase">BTC Spot</div><div id="price" class="text-xl font-black text-white tabular-nums">0.00</div></div>
-            <div class="panel p-3 border-b-2 border-blue-600"><div class="text-[8px] text-blue-500 font-bold italic uppercase">Active Strike</div><div id="strike-display" class="text-xl font-black text-blue-400">0.00</div></div>
-            <div class="panel p-3"><div class="text-[8px] text-slate-500 font-bold uppercase">Confidence</div><div id="conf-val" class="text-xl font-black text-blue-500">0%</div></div>
-            <div class="panel p-3"><div class="text-[8px] text-slate-500 font-bold italic uppercase">Cycle Timer</div><div id="timer" class="text-xl font-black text-slate-400 italic tabular-nums">00:00</div></div>
+            <div class="panel p-3"><div class="text-[8px] text-slate-500 font-bold uppercase tracking-widest">BTC Price</div><div id="price" class="text-xl font-black text-white">0.00</div></div>
+            <div class="panel p-3 border-b-2 border-blue-600"><div class="text-[8px] text-blue-500 font-bold italic uppercase">Manual Strike</div><div id="strike-display" class="text-xl font-black text-blue-400">0.00</div></div>
+            <div class="panel p-3"><div class="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Confidence</div><div id="conf-val" class="text-xl font-black text-blue-500">0%</div></div>
+            <div class="panel p-3"><div class="text-[8px] text-slate-500 font-bold italic uppercase">Cycle</div><div id="timer" class="text-xl font-black text-slate-400 tabular-nums">00:00</div></div>
         </div>
         <div class="panel flex-1 relative overflow-hidden" id="chart-box"><div id="chart" class="absolute inset-0"></div></div>
     </div>
 
     <div id="decision-panel" class="panel p-4 flex flex-col items-center justify-between text-center border-l-4 border-blue-900 overflow-hidden">
-        <div class="w-full text-left uppercase text-[10px] font-black text-slate-700 tracking-[0.3em] italic">Elite Engine</div>
+        <div class="w-full text-left uppercase text-[10px] font-black text-slate-700 tracking-[0.3em] italic italic">Decision Engine</div>
         <div id="main-signal">
             <div id="signal-text" class="text-slate-800 font-black italic tracking-tighter">WAIT</div>
-            <div id="signal-sub" class="text-[11px] text-slate-500 mt-4 uppercase font-bold tracking-[0.3em]">Monitoring Trend</div>
+            <div id="signal-sub" class="text-[11px] text-slate-500 mt-4 uppercase font-bold tracking-[0.3em]">Analyzing Market</div>
         </div>
         <div class="w-full space-y-2">
             <div class="flex justify-between text-[8px] font-black text-slate-600 uppercase italic"><span>Signal Power</span><span id="power-percent">0%</span></div>
@@ -78,7 +82,8 @@
         const TG_TOKEN = "8624536975:AAE-2JPl3JSxQ247jPxm9P0QFN6_8H7Z31w";
         const CHAT_ID = "8624536975"; 
         let lastSentCycle = -1; 
-        let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null, strikeLine = null;
+        let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null;
+        let strikeLine = null, bbUpper = null, bbLower = null;
 
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             layout: { background: { color: '#0b0e14' }, textColor: '#64748b' },
@@ -87,12 +92,14 @@
             timeScale: { borderVisible: false }
         });
         const series = chart.addCandlestickSeries({ upColor: '#10b981', downColor: '#ef4444', borderVisible: false });
+        
+        // Bollinger Series
+        const upperSeries = chart.addLineSeries({ color: 'rgba(56, 189, 248, 0.3)', lineWidth: 1, lineStyle: 2 });
+        const lowerSeries = chart.addLineSeries({ color: 'rgba(56, 189, 248, 0.3)', lineWidth: 1, lineStyle: 2 });
 
-        // SOUND FUNCTION
         function playAlert() {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
             osc.connect(gain); gain.connect(ctx.destination);
             osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
             gain.gain.setValueAtTime(0.1, ctx.currentTime);
@@ -106,31 +113,29 @@
                 STRIKE = val;
                 document.getElementById('strike-display').innerText = STRIKE.toFixed(2);
                 if (strikeLine) series.removePriceLine(strikeLine);
-                strikeLine = series.createPriceLine({ price: STRIKE, color: '#3b82f6', lineWidth: 2, lineStyle: 0, title: 'MANUAL STRIKE' });
+                strikeLine = series.createPriceLine({ price: STRIKE, color: '#3b82f6', lineWidth: 2, lineStyle: 0, title: 'TARGET' });
             }
         }
 
-        async function sendTelegram(msg) {
-            try { await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`); } 
-            catch (e) { console.error("TG FAIL", e); }
+        // Indicators Logic
+        function calcEMA(data, p) {
+            let k = 2/(p+1), e = data[0];
+            return data.reduce((acc, val) => val * k + acc * (1 - k), e);
         }
 
-        async function init() {
-            const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
-            const data = await r.json();
-            history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
-            series.setData(history);
-            currentCandle = history[history.length-1];
-            STRIKE = Math.round(currentCandle.close);
-            document.getElementById('strike-input').value = STRIKE;
-            setManualStrike();
+        function calcMACD() {
+            const closes = history.map(h => h.close);
+            const ema12 = calcEMA(closes.slice(-12), 12);
+            const ema26 = calcEMA(closes.slice(-26), 26);
+            const macd = ema12 - ema26;
+            return macd;
         }
 
-        function getEMA(p) {
-            const c = history.map(h => h.close);
-            let k = 2/(p+1), e = c[0];
-            for (let i=1; i<c.length; i++) e = c[i]*k + e*(1-k);
-            return e;
+        function calcBB(p=20, std=2) {
+            const closes = history.map(h => h.close).slice(-p);
+            const avg = closes.reduce((a, b) => a + b) / p;
+            const dev = Math.sqrt(closes.map(x => Math.pow(x - avg, 2)).reduce((a, b) => a + b) / p);
+            return { mid: avg, upper: avg + (dev * std), lower: avg - (dev * std) };
         }
 
         function getRSI(p=14) {
@@ -147,29 +152,29 @@
             if (history.length < 30 || STRIKE === 0) return;
             const delta = lastBTC - STRIKE;
             const rsi = getRSI();
-            const ema9 = getEMA(9), ema21 = getEMA(21);
-            const now = new Date();
-            const currentCycle = Math.floor(now.getMinutes() / 15);
-            
-            // Update EMA UI
-            const emaStat = document.getElementById('ema-status');
-            const emaTrend = document.getElementById('ema-trend');
-            emaStat.innerText = `9: ${ema9.toFixed(1)} | 21: ${ema21.toFixed(1)}`;
-            if (ema9 > ema21) {
-                emaTrend.innerText = "BULLISH TREND (9 > 21)";
-                emaTrend.className = "text-[10px] font-bold mt-1 uppercase trend-up";
-            } else {
-                emaTrend.innerText = "BEARISH TREND (9 < 21)";
-                emaTrend.className = "text-[10px] font-bold mt-1 uppercase trend-down";
-            }
+            const ema9 = calcEMA(history.map(h => h.close).slice(-9), 9);
+            const ema21 = calcEMA(history.map(h => h.close).slice(-21), 21);
+            const macd = calcMACD();
+            const bb = calcBB();
 
+            // UI Updates
             document.getElementById('rsi-val').innerText = rsi.toFixed(1);
+            document.getElementById('ema-status').innerText = ema9 > ema21 ? "BULLISH" : "BEARISH";
+            document.getElementById('ema-status').className = ema9 > ema21 ? "text-[11px] font-bold up" : "text-[11px] font-bold down";
+            document.getElementById('macd-status').innerText = macd > 0 ? "POSITIVE IMPULSE" : "NEGATIVE IMPULSE";
+            document.getElementById('macd-status').className = macd > 0 ? "text-[11px] font-bold up" : "text-[11px] font-bold down";
+            
+            const bbPos = lastBTC > bb.upper ? "OVERBOUGHT" : lastBTC < bb.lower ? "OVERSOLD" : "NEUTRAL";
+            document.getElementById('bb-status').innerText = bbPos;
 
-            let score = 20;
-            if (ema9 > ema21 && delta < 0) score += 40;
-            if (ema9 < ema21 && delta > 0) score += 40;
-            if (delta < 0 && rsi < 40) score += 20;
-            if (delta > 0 && rsi > 60) score += 20;
+            // Signal Logic
+            let score = 15;
+            if (ema9 > ema21 && delta < 0) score += 25;
+            if (ema9 < ema21 && delta > 0) score += 25;
+            if (macd > 0 && delta < 0) score += 15;
+            if (macd < 0 && delta > 0) score += 15;
+            if (lastBTC < bb.lower && delta < 0) score += 20; // Отскок от нижней границы
+            if (lastBTC > bb.upper && delta > 0) score += 20; // Отскок от верхней границы
 
             const conf = Math.max(5, Math.min(score, 99));
             document.getElementById('conf-val').innerText = conf + "%";
@@ -180,17 +185,23 @@
             if (conf >= 75) {
                 const side = delta > 0 ? 'DOWN' : 'UP';
                 sigText.innerText = side;
-                sigText.className = (side === 'UP' ? 'text-emerald-500' : 'text-red-500') + ' font-black italic tracking-tighter glow-text';
+                sigText.className = (side === 'UP' ? 'up' : 'down') + ' font-black italic tracking-tighter glow-text';
                 
+                const now = new Date();
+                const currentCycle = Math.floor(now.getMinutes() / 15);
                 if (lastSentCycle !== currentCycle) {
-                    playAlert(); // SOUND ALERT
-                    sendTelegram(`🚀 <b>SIGNAL DETECTED</b>\n\nSide: <b>${side}</b>\nConf: <b>${conf}%</b>\n\nBTC: ${lastBTC}\nStrike: ${STRIKE}`);
+                    playAlert();
+                    fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(`🔥 <b>PRO SIGNAL</b>\n\nSide: <b>${side}</b>\nConf: <b>${conf}%</b>\n\nBTC: ${lastBTC}\nMACD: ${macd.toFixed(2)}\nBB: ${bbPos}`)}&parse_mode=HTML`);
                     lastSentCycle = currentCycle;
                 }
             } else {
                 sigText.innerText = "WAIT";
                 sigText.className = "text-slate-800 font-black italic tracking-tighter";
             }
+
+            // Update BB Lines on Chart
+            upperSeries.update({ time: currentCandle.time, value: bb.upper });
+            lowerSeries.update({ time: currentCandle.time, value: bb.lower });
         }
 
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
@@ -201,11 +212,23 @@
             if(!currentCandle || time > currentCandle.time) {
                 currentCandle = { time, open: lastBTC, high: lastBTC, low: lastBTC, close: lastBTC };
                 history.push(currentCandle);
+                if(history.length > 200) history.shift();
             } else {
                 currentCandle.close = lastBTC; currentCandle.high = Math.max(currentCandle.high, lastBTC); currentCandle.low = Math.min(currentCandle.low, lastBTC);
             }
             series.update(currentCandle); update();
         };
+
+        async function init() {
+            const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
+            const data = await r.json();
+            history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
+            series.setData(history);
+            currentCandle = history[history.length-1];
+            STRIKE = Math.round(currentCandle.close);
+            document.getElementById('strike-input').value = STRIKE;
+            setManualStrike();
+        }
 
         setInterval(() => {
             const now = new Date();
@@ -216,6 +239,7 @@
 
         init();
         new ResizeObserver(() => chart.applyOptions({ width: document.getElementById('chart-box').clientWidth, height: document.getElementById('chart-box').clientHeight })).observe(document.getElementById('chart-box'));
+        document.body.onclick = () => { console.log("Audio Enabled"); };
     </script>
 </body>
 </html>
