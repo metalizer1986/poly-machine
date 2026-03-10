@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL V18.5 | BIG-DATA EDITION</title>
+    <title>TERMINAL V18.6 | VOLUME-MASTER</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -15,17 +15,19 @@
         @keyframes glow { from { opacity: 0.6; } to { opacity: 1; } }
         .stat-value { font-size: 1.875rem; line-height: 2.25rem; font-weight: 900; letter-spacing: -0.05em; }
         .stat-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; }
+        .up { color: #10b981; }
+        .down { color: #ef4444; }
     </style>
 </head>
 <body class="h-screen p-3 grid grid-cols-[340px_1fr_320px] gap-3">
 
     <div class="panel p-4 flex flex-col gap-3 overflow-y-auto">
         <div class="border-b border-slate-800 pb-2 mb-2">
-            <span class="text-[10px] font-black text-blue-400 uppercase italic">V18.5 BIG-DATA</span>
+            <span class="text-[10px] font-black text-blue-400 uppercase italic tracking-widest text-center block">Elite Intelligence V18.6</span>
         </div>
         
-        <div class="panel bg-slate-900/40 p-3 border-blue-500/20 mb-2">
-            <div class="stat-label mb-2 text-blue-400">Target Strike</div>
+        <div class="panel bg-slate-900/40 p-3 border-blue-500/20 mb-1">
+            <div class="stat-label mb-2 text-blue-400">Manual Strike Control</div>
             <div class="flex gap-2">
                 <input type="number" id="strike-input" class="input-strike w-full p-2 rounded text-xl tabular-nums" placeholder="0.00">
                 <button onclick="setManualStrike()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 rounded font-bold">SET</button>
@@ -33,45 +35,49 @@
         </div>
 
         <div class="panel p-4 border-l-4 border-emerald-500 bg-emerald-950/5">
-            <div class="stat-label text-emerald-500">EMA 9/21 Trend</div>
-            <div id="ema-status" class="stat-value text-white">SCANNING</div>
+            <div class="stat-label text-emerald-500">EMA Trend</div>
+            <div id="ema-status" class="stat-value text-white">---</div>
         </div>
 
         <div class="panel p-4 border-l-4 border-purple-500 bg-purple-950/5">
             <div class="stat-label text-purple-400">MACD Pulse</div>
-            <div id="macd-status" class="stat-value text-white">WAIT</div>
+            <div id="macd-status" class="stat-value text-white">---</div>
         </div>
 
         <div class="panel p-4 border-l-4 border-amber-500 bg-amber-950/5">
-            <div class="stat-label text-amber-500">RSI Strength</div>
+            <div class="stat-label text-amber-500">RSI Value</div>
             <div id="rsi-val" class="stat-value text-white tabular-nums">--</div>
         </div>
 
         <div class="panel p-4 border-l-4 border-sky-500 bg-sky-950/10">
-            <div class="stat-label text-sky-400">Distance</div>
+            <div class="stat-label text-sky-400">Strike Distance</div>
             <div id="live-dist-points" class="stat-value text-white tabular-nums">0.00</div>
         </div>
     </div>
 
     <div class="flex flex-col gap-3">
         <div class="grid grid-cols-4 gap-3 text-center">
-            <div class="panel p-3"><div class="stat-label">BTC Spot</div><div id="price" class="text-xl font-black text-white">0.00</div></div>
+            <div class="panel p-3"><div class="stat-label">BTC Price</div><div id="price" class="text-xl font-black text-white">0.00</div></div>
             <div class="panel p-3 border-b-2 border-sky-600"><div class="stat-label text-sky-500">Active Strike</div><div id="strike-display" class="text-xl font-black text-sky-400">0.00</div></div>
             <div class="panel p-3"><div class="stat-label">Confidence</div><div id="conf-val" class="text-xl font-black text-blue-500">0%</div></div>
-            <div class="panel p-3"><div class="stat-label">Cycle</div><div id="timer" class="text-xl font-black text-slate-400 tabular-nums">00:00</div></div>
+            <div class="panel p-3"><div class="stat-label italic">Cycle Timer</div><div id="timer" class="text-xl font-black text-slate-400 tabular-nums">00:00</div></div>
         </div>
-        <div class="panel flex-1 relative overflow-hidden" id="chart-box"><div id="chart" class="absolute inset-0"></div></div>
+        <div class="panel flex-1 relative overflow-hidden" id="chart-box">
+            <div id="chart" class="absolute inset-0"></div>
+        </div>
     </div>
 
     <div id="decision-panel" class="panel p-4 flex flex-col items-center justify-between text-center border-l-4 border-blue-900 overflow-hidden">
-        <div class="w-full text-left stat-label italic">Decision Engine</div>
+        <div class="w-full text-left stat-label italic">Signal Output</div>
         <div id="main-signal" class="flex flex-col items-center justify-center flex-1">
             <div id="signal-text" class="text-slate-800 font-black italic tracking-tighter">WAIT</div>
             <div id="signal-sub" class="text-[11px] text-slate-500 mt-4 uppercase font-bold tracking-[0.3em]">Monitoring</div>
         </div>
         <div class="w-full space-y-2">
-            <div class="flex justify-between stat-label"><span>Power</span><span id="power-percent">0%</span></div>
-            <div class="h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800"><div id="conf-bar" class="h-full bg-gradient-to-r from-blue-800 to-blue-400 transition-all duration-700" style="width: 0%"></div></div>
+            <div class="flex justify-between stat-label"><span>Score</span><span id="power-percent">0%</span></div>
+            <div class="h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                <div id="conf-bar" class="h-full bg-gradient-to-r from-blue-800 to-blue-400 transition-all duration-700" style="width: 0%"></div>
+            </div>
         </div>
     </div>
 
@@ -79,7 +85,7 @@
         const TG_TOKEN = "8624536975:AAE-2JPl3JSxQ247jPxm9P0QFN6_8H7Z31w";
         const CHAT_ID = "8624536975"; 
         let lastSentCycle = -1, STRIKE = 0, lastBTC = 0, history = [], currentCandle = null;
-        let strikeLine = null, upperSeries = null, lowerSeries = null;
+        let strikeLine = null, volumeSeries = null;
 
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             layout: { background: { color: '#0b0e14' }, textColor: '#64748b' },
@@ -87,9 +93,20 @@
             rightPriceScale: { borderVisible: false, autoScale: true },
             timeScale: { borderVisible: false }
         });
-        const series = chart.addCandlestickSeries({ upColor: '#10b981', downColor: '#ef4444', borderVisible: false });
-        upperSeries = chart.addLineSeries({ color: 'rgba(56, 189, 248, 0.15)', lineWidth: 1, lineStyle: 2 });
-        lowerSeries = chart.addLineSeries({ color: 'rgba(56, 189, 248, 0.15)', lineWidth: 1, lineStyle: 2 });
+
+        // Свечи
+        const series = chart.addCandlestickSeries({ upColor: '#10b981', downColor: '#ef4444', borderVisible: false, wickUpColor: '#10b981', wickDownColor: '#ef4444' });
+        
+        // ОБЪЕМЫ (Volume Pane)
+        volumeSeries = chart.addHistogramSeries({
+            color: '#38bdf8',
+            priceFormat: { type: 'volume' },
+            priceScaleId: 'volume', // отдельная шкала
+        });
+
+        chart.priceScale('volume').applyOptions({
+            scaleMargins: { top: 0.8, bottom: 0 }, // Прижимаем к низу (занимает 20% высоты)
+        });
 
         function playAlert() {
             try {
@@ -97,9 +114,9 @@
                 const osc = ctx.createOscillator(); const gain = ctx.createGain();
                 osc.connect(gain); gain.connect(ctx.destination);
                 osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                osc.start(); osc.stop(ctx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                osc.start(); osc.stop(ctx.currentTime + 0.3);
             } catch(e) {}
         }
 
@@ -119,12 +136,6 @@
             if (closes.length < 26) return 0;
             return calcEMA(closes.slice(-12), 12) - calcEMA(closes.slice(-26), 26);
         }
-        function calcBB(p=20, std=2) {
-            const closes = history.map(h => h.close).slice(-p);
-            const avg = closes.reduce((a, b) => a + b) / p;
-            const dev = Math.sqrt(closes.map(x => Math.pow(x - avg, 2)).reduce((a, b) => a + b) / p);
-            return { mid: avg, upper: avg + (dev * std), lower: avg - (dev * std) };
-        }
         function getRSI(p=14) {
             const c = history.map(h => h.close); let up=0, dn=0;
             for(let i=c.length-p; i<c.length; i++) {
@@ -140,9 +151,7 @@
             const ema9 = calcEMA(history.map(h => h.close).slice(-9), 9);
             const ema21 = calcEMA(history.map(h => h.close).slice(-21), 21);
             const macd = calcMACD();
-            const bb = calcBB();
 
-            // BIG UI UPDATES
             document.getElementById('rsi-val').innerText = rsi.toFixed(1);
             document.getElementById('ema-status').innerText = ema9 > ema21 ? "UP" : "DOWN";
             document.getElementById('ema-status').className = "stat-value " + (ema9 > ema21 ? "text-emerald-400" : "text-red-400");
@@ -150,13 +159,11 @@
             document.getElementById('macd-status').className = "stat-value " + (macd > 0 ? "text-purple-400" : "text-red-400");
             document.getElementById('live-dist-points').innerText = Math.abs(diff).toFixed(2);
 
-            let score = 15;
-            if (ema9 > ema21 && diff < 0) score += 25;
-            if (ema9 < ema21 && diff > 0) score += 25;
-            if (macd > 0 && diff < 0) score += 15;
-            if (macd < 0 && diff > 0) score += 15;
-            if (lastBTC < bb.lower && diff < 0) score += 20;
-            if (lastBTC > bb.upper && diff > 0) score += 20;
+            let score = 20;
+            if (ema9 > ema21 && diff < 0) score += 30;
+            if (ema9 < ema21 && diff > 0) score += 30;
+            if (macd > 0 && diff < 0) score += 20;
+            if (macd < 0 && diff > 0) score += 20;
 
             const conf = Math.max(5, Math.min(score, 99));
             document.getElementById('conf-val').innerText = conf + "%";
@@ -164,7 +171,7 @@
             document.getElementById('conf-bar').style.width = conf + "%";
 
             const sigText = document.getElementById('signal-text');
-            if (conf >= 75) {
+            if (conf >= 80) {
                 const side = diff > 0 ? 'DOWN' : 'UP';
                 sigText.innerText = side;
                 sigText.className = (side === 'UP' ? 'text-emerald-500' : 'text-red-500') + ' font-black italic tracking-tighter glow-text';
@@ -173,36 +180,57 @@
                 const currentCycle = Math.floor(now.getMinutes() / 15);
                 if (lastSentCycle !== currentCycle) {
                     playAlert();
-                    fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(`🛰 <b>ELITE SIGNAL</b>\n\nSide: <b>${side}</b>\nConf: <b>${conf}%</b>\n\nBTC: ${lastBTC}\nDistance: ${Math.abs(diff).toFixed(2)}`)}&parse_mode=HTML`);
+                    fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(`🚀 <b>SIGNAL V18.6</b>\n\nSide: <b>${side}</b>\nConf: <b>${conf}%</b>\n\nBTC: ${lastBTC}\nDistance: ${Math.abs(diff).toFixed(2)}`)}&parse_mode=HTML`);
                     lastSentCycle = currentCycle;
                 }
             } else {
                 sigText.innerText = "WAIT";
                 sigText.className = "text-slate-800 font-black italic tracking-tighter";
             }
-            upperSeries.update({ time: currentCandle.time, value: bb.upper });
-            lowerSeries.update({ time: currentCandle.time, value: bb.lower });
         }
 
         const ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@trade');
         ws.onmessage = e => {
-            const d = JSON.parse(e.data); lastBTC = parseFloat(d.p);
+            const d = JSON.parse(e.data); 
+            lastBTC = parseFloat(d.p);
+            const vol = parseFloat(d.q);
             document.getElementById('price').innerText = lastBTC.toLocaleString();
             const time = Math.floor(d.E/60000)*60;
+
             if(!currentCandle || time > currentCandle.time) {
-                currentCandle = { time, open: lastBTC, high: lastBTC, low: lastBTC, close: lastBTC };
-                history.push(currentCandle); if(history.length > 200) history.shift();
+                currentCandle = { time, open: lastBTC, high: lastBTC, low: lastBTC, close: lastBTC, volume: vol };
+                history.push(currentCandle); if(history.length > 300) history.shift();
             } else {
-                currentCandle.close = lastBTC; currentCandle.high = Math.max(currentCandle.high, lastBTC); currentCandle.low = Math.min(currentCandle.low, lastBTC);
+                currentCandle.close = lastBTC; 
+                currentCandle.high = Math.max(currentCandle.high, lastBTC); 
+                currentCandle.low = Math.min(currentCandle.low, lastBTC);
+                currentCandle.volume += vol;
             }
-            series.update(currentCandle); update();
+            
+            series.update(currentCandle);
+            volumeSeries.update({
+                time: currentCandle.time,
+                value: currentCandle.volume,
+                color: currentCandle.close >= currentCandle.open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)'
+            });
+            update();
         };
 
         async function init() {
-            const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100');
+            const r = await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=150');
             const data = await r.json();
-            history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
+            const volumeData = [];
+            history = data.map(d => {
+                const item = { time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]), volume: parseFloat(d[5]) };
+                volumeData.push({
+                    time: item.time,
+                    value: item.volume,
+                    color: item.close >= item.open ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)'
+                });
+                return item;
+            });
             series.setData(history);
+            volumeSeries.setData(volumeData);
             currentCandle = history[history.length-1];
             STRIKE = Math.round(currentCandle.close);
             document.getElementById('strike-input').value = STRIKE;
@@ -218,7 +246,7 @@
 
         init();
         new ResizeObserver(() => chart.applyOptions({ width: document.getElementById('chart-box').clientWidth, height: document.getElementById('chart-box').clientHeight })).observe(document.getElementById('chart-box'));
-        document.body.onclick = () => { console.log("Audio Active"); };
+        document.body.onclick = () => { console.log("System Ready"); };
     </script>
 </body>
 </html>
