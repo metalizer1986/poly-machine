@@ -2,98 +2,83 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>TERMINAL V18.0 | ELITE FIXED</title>
+    <title>TERMINAL V18.1 | MANUAL CONTROL</title>
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { background: #02040a; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
         .panel { background: #0b0e14; border: 1px solid #1e293b; border-radius: 8px; }
-        .signal-up { color: #10b981; text-shadow: 0 0 40px rgba(16,185,129,0.9); }
-        .signal-down { color: #ef4444; text-shadow: 0 0 40px rgba(239,68,68,0.9); }
-        
-        #main-signal {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            flex-grow: 1;
-        }
-        
-        #signal-text {
-            font-size: clamp(3rem, 10vw, 7rem); /* Динамический размер, чтобы не вылетало за края */
-            line-height: 1;
-            text-align: center;
-            width: 100%;
-            display: block;
-            transition: all 0.3s ease;
-        }
-
+        .input-strike { background: #0f172a; border: 1px solid #334155; color: #38bdf8; font-weight: 800; }
+        .input-strike:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 10px rgba(59,130,246,0.3); }
+        #main-signal { width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; flex-grow: 1; }
+        #signal-text { font-size: clamp(3rem, 10vw, 7rem); line-height: 1; text-align: center; width: 100%; display: block; }
         .glow-text { animation: glow 1.2s infinite alternate; }
-        @keyframes glow { from { opacity: 0.7; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        @keyframes glow { from { opacity: 0.7; } to { opacity: 1; } }
     </style>
 </head>
 <body class="h-screen p-3 grid grid-cols-[310px_1fr_320px] gap-3">
 
     <div class="panel p-4 flex flex-col gap-4 overflow-y-auto">
         <div class="border-b border-slate-800 pb-2 flex justify-between items-center">
-            <span class="text-[10px] font-black text-emerald-400 uppercase italic tracking-widest">ELITE V18.0</span>
-            <div class="text-[8px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/50 font-bold uppercase">TG LIVE</div>
+            <span class="text-[10px] font-black text-blue-400 uppercase italic tracking-widest">Manual V18.1</span>
+            <div class="text-[8px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/50 font-bold uppercase">TG Ready</div>
         </div>
         
         <div class="space-y-4">
-            <div class="panel bg-slate-900/50 p-4 border-emerald-500/20">
-                <div class="text-[9px] text-slate-500 uppercase font-black mb-1 italic">Auto-Midpoint Sync</div>
-                <div id="dist-val" class="text-3xl font-black tabular-nums text-white tracking-tighter">0.00</div>
-                <div id="dist-status" class="text-[9px] font-bold uppercase mt-1 text-emerald-500">Distance Active</div>
+            <div class="panel bg-slate-900/50 p-4 border-blue-500/20">
+                <div class="text-[9px] text-slate-500 uppercase font-black mb-2 italic">Manual Strike Input</div>
+                <div class="flex gap-2">
+                    <input type="number" id="strike-input" class="input-strike w-full p-2 rounded text-lg tabular-nums" placeholder="Введите страйк...">
+                    <button onclick="setManualStrike()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 rounded font-bold text-xs">SET</button>
+                </div>
             </div>
 
-            <div class="stat-card p-3 border-l-2 border-emerald-800 bg-emerald-950/5">
-                <div class="text-[8px] text-emerald-600 uppercase font-black mb-1">Momentum (RSI)</div>
-                <div id="rsi-val" class="text-lg font-black text-slate-100">--</div>
+            <div class="stat-card p-3 border-l-2 border-blue-800 bg-blue-950/5">
+                <div class="text-[8px] text-blue-600 uppercase font-black mb-1">Strike Distance</div>
+                <div id="dist-val" class="text-2xl font-black text-slate-100 tabular-nums">0.00</div>
             </div>
             
-            <div class="stat-card p-3 border-l-2 border-emerald-800 bg-emerald-950/5">
-                <div class="text-[8px] text-emerald-600 uppercase font-black mb-1">Direction (EMA)</div>
-                <div id="ema-status" class="text-xs font-black text-slate-100 uppercase tracking-tighter">Scanning...</div>
+            <div class="stat-card p-3 border-l-2 border-slate-800">
+                <div class="text-[8px] text-slate-500 uppercase font-black mb-1">Momentum (RSI)</div>
+                <div id="rsi-val" class="text-lg font-black">--</div>
             </div>
         </div>
 
-        <div class="mt-auto panel bg-black/40 p-3 border-emerald-900/20">
-            <div class="text-[10px] text-emerald-400 font-bold mb-1 italic tracking-widest">Bot Status:</div>
-            <div class="text-[9px] text-slate-400">ID: 8624536975<br>Signal Power: 75%</div>
+        <div class="mt-auto panel bg-black/40 p-3 border-slate-800">
+            <div class="text-[10px] text-slate-500 font-bold mb-1 italic">Target ID:</div>
+            <div class="text-[9px] text-slate-600">8624536975</div>
         </div>
     </div>
 
     <div class="flex flex-col gap-3">
         <div class="grid grid-cols-4 gap-3 text-center">
             <div class="panel p-3">
-                <div class="text-[8px] text-slate-500 font-bold">BTC/USDT</div>
-                <div id="price" class="text-xl font-black text-white tabular-nums tracking-tighter">0.00</div>
+                <div class="text-[8px] text-slate-500 font-bold uppercase">BTC Spot</div>
+                <div id="price" class="text-xl font-black text-white tabular-nums">0.00</div>
             </div>
-            <div class="panel p-3 border-b-2 border-emerald-600">
-                <div class="text-[8px] text-emerald-600 font-bold italic">TARGET STRIKE</div>
-                <div id="strike-display" class="text-xl font-black text-emerald-400 tabular-nums">0.00</div>
-            </div>
-            <div class="panel p-3">
-                <div class="text-[8px] text-slate-500 font-bold">CONFIDENCE</div>
-                <div id="conf-val" class="text-xl font-black text-emerald-500 tracking-tighter">0%</div>
+            <div class="panel p-3 border-b-2 border-blue-600">
+                <div class="text-[8px] text-blue-500 font-bold italic uppercase">Active Strike</div>
+                <div id="strike-display" class="text-xl font-black text-blue-400">0.00</div>
             </div>
             <div class="panel p-3">
-                <div class="text-[8px] text-slate-500 font-bold italic uppercase">Cycle Time</div>
-                <div id="timer" class="text-xl font-black text-slate-400 italic tabular-nums tracking-widest">00:00</div>
+                <div class="text-[8px] text-slate-500 font-bold uppercase">Confidence</div>
+                <div id="conf-val" class="text-xl font-black text-blue-500">0%</div>
+            </div>
+            <div class="panel p-3">
+                <div class="text-[8px] text-slate-500 font-bold italic uppercase">Cycle Timer</div>
+                <div id="timer" class="text-xl font-black text-slate-400 italic tabular-nums">00:00</div>
             </div>
         </div>
         <div class="panel flex-1 relative overflow-hidden" id="chart-box"><div id="chart" class="absolute inset-0"></div></div>
     </div>
 
-    <div id="decision-panel" class="panel p-4 flex flex-col items-center justify-between text-center border-l-4 border-emerald-900 overflow-hidden">
+    <div id="decision-panel" class="panel p-4 flex flex-col items-center justify-between text-center border-l-4 border-blue-900 overflow-hidden">
         <div class="w-full text-left uppercase text-[10px] font-black text-slate-700 tracking-[0.3em] italic">Elite Engine</div>
         
         <div id="main-signal">
             <div id="signal-text" class="text-slate-800 font-black italic tracking-tighter">WAIT</div>
-            <div id="signal-sub" class="text-[11px] text-slate-500 mt-4 uppercase font-bold tracking-[0.3em]">Monitoring Impulse</div>
+            <div id="signal-sub" class="text-[11px] text-slate-500 mt-4 uppercase font-bold tracking-[0.3em]">Monitoring Strike</div>
         </div>
 
         <div class="w-full space-y-2">
@@ -101,8 +86,8 @@
                 <span>Signal Power</span>
                 <span id="power-percent">0%</span>
             </div>
-            <div class="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-900 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]">
-                <div id="conf-bar" class="h-full bg-gradient-to-r from-emerald-800 to-emerald-400 transition-all duration-700" style="width: 0%"></div>
+            <div class="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                <div id="conf-bar" class="h-full bg-gradient-to-r from-blue-800 to-blue-400 transition-all duration-700" style="width: 0%"></div>
             </div>
         </div>
     </div>
@@ -111,8 +96,8 @@
         const TG_TOKEN = "8624536975:AAE-2JPl3JSxQ247jPxm9P0QFN6_8H7Z31w";
         const CHAT_ID = "8624536975"; 
         let lastSentCycle = -1; 
-
         let STRIKE = 0, lastBTC = 0, history = [], currentCandle = null, strikeLine = null;
+
         const chart = LightweightCharts.createChart(document.getElementById('chart'), {
             layout: { background: { color: '#0b0e14' }, textColor: '#64748b' },
             grid: { vertLines: { color: '#161b22' }, horzLines: { color: '#161b22' } },
@@ -121,17 +106,18 @@
         });
         const series = chart.addCandlestickSeries({ upColor: '#10b981', downColor: '#ef4444', borderVisible: false });
 
-        async function sendTelegram(msg) {
-            try {
-                await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`);
-            } catch (e) { console.error("TG FAIL", e); }
+        function setManualStrike() {
+            const val = parseFloat(document.getElementById('strike-input').value);
+            if (!isNaN(val)) {
+                STRIKE = val;
+                document.getElementById('strike-display').innerText = STRIKE.toFixed(2);
+                if (strikeLine) series.removePriceLine(strikeLine);
+                strikeLine = series.createPriceLine({ price: STRIKE, color: '#3b82f6', lineWidth: 2, lineStyle: 0, title: 'MANUAL STRIKE' });
+            }
         }
 
-        function syncMidpoint(price) {
-            STRIKE = Math.round(price);
-            document.getElementById('strike-display').innerText = STRIKE.toFixed(2);
-            if (strikeLine) series.removePriceLine(strikeLine);
-            strikeLine = series.createPriceLine({ price: STRIKE, color: '#10b981', lineWidth: 2, lineStyle: 0, title: 'MIDPOINT SYNC' });
+        async function sendTelegram(msg) {
+            try { await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`); } catch (e) { console.error(e); }
         }
 
         async function init() {
@@ -140,7 +126,9 @@
             history = data.map(d => ({ time: d[0]/1000, open: parseFloat(d[1]), high: parseFloat(d[2]), low: parseFloat(d[3]), close: parseFloat(d[4]) }));
             series.setData(history);
             currentCandle = history[history.length-1];
-            syncMidpoint(currentCandle.close);
+            STRIKE = Math.round(currentCandle.close);
+            document.getElementById('strike-input').value = STRIKE;
+            setManualStrike();
         }
 
         function getEMA(p) {
@@ -161,18 +149,15 @@
         }
 
         function update() {
-            if (history.length < 30) return;
+            if (history.length < 30 || STRIKE === 0) return;
             const delta = lastBTC - STRIKE;
             const rsi = getRSI();
             const ema9 = getEMA(9), ema21 = getEMA(21);
             const now = new Date();
             const currentCycle = Math.floor(now.getMinutes() / 15);
-            const remM = 14 - (now.getMinutes() % 15);
-            const remS = 59 - now.getSeconds();
             
             document.getElementById('dist-val').innerText = Math.abs(delta).toFixed(2);
             document.getElementById('rsi-val').innerText = rsi.toFixed(1);
-            document.getElementById('ema-status').innerText = ema9 > ema21 ? "BULLISH TREND" : "BEARISH TREND";
 
             let score = 25;
             if (ema9 > ema21 && delta < 0) score += 30;
@@ -190,17 +175,14 @@
                 const side = delta > 0 ? 'DOWN' : 'UP';
                 sigText.innerText = side;
                 sigText.className = (side === 'UP' ? 'text-emerald-500' : 'text-red-500') + ' font-black italic tracking-tighter glow-text';
-                document.getElementById('signal-sub').innerText = "Confirmed Entry";
                 
                 if (lastSentCycle !== currentCycle) {
-                    const msg = `👑 <b>ELITE SIGNAL</b>\n\nНаправление: <b>${side}</b>\nСила: <b>${conf}%</b>\n\nBTC: ${lastBTC}\nStrike: ${STRIKE}\nДо конца свечи: ${remM}:${remS < 10 ? '0' : ''}${remS}`;
-                    sendTelegram(msg);
+                    sendTelegram(`🎯 <b>MANUAL SIGNAL</b>\n\nНаправление: <b>${side}</b>\nУверенность: <b>${conf}%</b>\n\nBTC: ${lastBTC}\nStrike: ${STRIKE}`);
                     lastSentCycle = currentCycle;
                 }
             } else {
                 sigText.innerText = "WAIT";
                 sigText.className = "text-slate-800 font-black italic tracking-tighter";
-                document.getElementById('signal-sub').innerText = "Monitoring Impulse";
             }
         }
 
@@ -209,8 +191,6 @@
             const d = JSON.parse(e.data); lastBTC = parseFloat(d.p);
             document.getElementById('price').innerText = lastBTC.toLocaleString();
             const time = Math.floor(d.E/60000)*60;
-            const now = new Date();
-            if (now.getMinutes() % 15 === 0 && now.getSeconds() === 0) syncMidpoint(lastBTC);
 
             if(!currentCandle || time > currentCandle.time) {
                 currentCandle = { time, open: lastBTC, high: lastBTC, low: lastBTC, close: lastBTC };
